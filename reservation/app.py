@@ -584,7 +584,7 @@ if st.session_state.page == "หน้าแรก":
             <div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>ยกเลิกห้องปฏิบัติการ</div>
             <div style='font-size:.82rem;opacity:.85'>บันทึกการยกเลิกห้องหลังใช้งาน</div>
         </div>""", unsafe_allow_html=True)
-        if st.button("❌  เข้าหน้ายกเลิกห้อง", use_container_width=True, key="home_rroom"):
+        if st.button("❌  เข้าหน้ายกเลิก/คืนห้อง", use_container_width=True, key="home_rroom"):
             st.session_state.page = "ยกเลิกห้อง"
             st.rerun()
 
@@ -1273,7 +1273,7 @@ elif st.session_state.page == "จองห้อง":
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ ยกเลิกห้องปฏิบัติการ
 # ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "ยกเลิกห้อง":
+elif st.session_state.page == "ยกเลิก/คืนห้อง":
     st.markdown('<div class="sec-title">❌ ยกเลิกห้องปฏิบัติการ</div>', unsafe_allow_html=True)
 
     active_rooms = [b for b in bookings if b["status"] == "ยืมอยู่" and b.get("item_type") == "ห้องปฏิบัติการ"]
