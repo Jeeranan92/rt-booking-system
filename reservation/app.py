@@ -697,7 +697,7 @@ elif st.session_state.page == "ยืมอุปกรณ์":
     st.divider()
 
     # วันและเวลา
-    st.markdown("##### 📅 วันที่และช่วงเวลา (จองครั้งละ 1 ชั่วโมง)")
+    st.markdown("##### 📅 วันที่และช่วงเวลา")
     borrow_date = st.date_input("วันที่ต้องการยืม *", min_value=date.today())
     date_str = borrow_date.strftime("%Y-%m-%d")
 
@@ -734,7 +734,7 @@ elif st.session_state.page == "ยืมอุปกรณ์":
 
     st.divider()
 
-    st.markdown("##### 📷 รูปภาพอุปกรณ์ก่อนนำออก (แนะนำ — เพิ่มภายหลังได้)")
+    st.markdown("##### 📷 รูปภาพอุปกรณ์ก่อนนำออก (เพิ่มภายหลังได้)")
     borrow_imgs = st.file_uploader(
         "อัปโหลดรูปภาพอุปกรณ์ก่อนยืม (เลือกได้หลายรูป)",
         type=["jpg","jpeg","png","heic","webp"],
@@ -755,7 +755,7 @@ elif st.session_state.page == "ยืมอุปกรณ์":
 
     if submit:
         if not name.strip() or not phone_id.strip():
-            st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษา")
+            st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทรบุคลากร/รหัสนักศึกษา")
         elif not chosen:
             st.error("กรุณาเลือกอุปกรณ์ก่อน")
         elif not borrow_slot:
@@ -898,7 +898,7 @@ elif st.session_state.page == "คืนอุปกรณ์":
 # PAGE ▸ ปฏิทิน
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "ปฏิทิน":
-    st.markdown('<div class="sec-title">🗓️ ปฏิทินการจองอุปกรณ์และห้องปฏิบัติการ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title">🗓️ ปฏิทินการยืมอุปกรณ์และการจองห้องปฏิบัติการ</div>', unsafe_allow_html=True)
 
     # nav
     nav1, nav2, nav3 = st.columns([1, 3, 1])
