@@ -447,7 +447,7 @@ with st.sidebar:
 
     # กลุ่ม 2: ห้องปฏิบัติการ
     st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>🏫 ห้องปฏิบัติการ</div>", unsafe_allow_html=True)
-    for label, key in [("📅  จองห้อง", "จองห้อง"), ("❌  ยกเลิกห้อง", "ยกเลิกห้อง")]:
+    for label, key in [("📅  จองห้อง", "จองห้อง"), ("❌  ยกเลิก/คืนห้อง", "ยกเลิกห้อง")]:
         if st.button(label, use_container_width=True,
                      type="primary" if st.session_state.page == key else "secondary",
                      key=f"nav_{key}"):
@@ -581,11 +581,11 @@ if st.session_state.page == "หน้าแรก":
             border-radius:16px;padding:1.5rem;color:white;margin-bottom:1rem;
             box-shadow:0 4px 18px rgba(198,40,40,.3)'>
             <div style='font-size:2.5rem'>❌</div>
-            <div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>ยกเลิกห้องปฏิบัติการ</div>
-            <div style='font-size:.82rem;opacity:.85'>บันทึกการยกเลิกห้องหลังใช้งาน</div>
+            <div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>ยกเลิก/คืนห้องปฏิบัติการ</div>
+            <div style='font-size:.82rem;opacity:.85'>บันทึกการยกเลิก/คืนห้องหลังใช้งาน</div>
         </div>""", unsafe_allow_html=True)
         if st.button("❌  เข้าหน้ายกเลิก/คืนห้อง", use_container_width=True, key="home_rroom"):
-            st.session_state.page = "ยกเลิกห้อง"
+            st.session_state.page = "ยกเลิก/คืนห้อง"
             st.rerun()
 
     st.divider()
