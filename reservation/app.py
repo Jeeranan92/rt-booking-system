@@ -447,7 +447,7 @@ with st.sidebar:
 
     # กลุ่ม 2: ห้องปฏิบัติการ
     st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>🏫 ห้องปฏิบัติการ</div>", unsafe_allow_html=True)
-    for label, key in [("📅  จองห้อง", "จองห้อง"), ("❌  ยกเลิก/คืนห้อง", "ยกเลิกห้อง")]:
+    for label, key in [("📅  จองห้อง", "จองห้อง"), ("❌  ยกเลิกห้อง", "ยกเลิกห้อง")]:
         if st.button(label, use_container_width=True,
                      type="primary" if st.session_state.page == key else "secondary",
                      key=f"nav_{key}"):
