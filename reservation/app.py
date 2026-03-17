@@ -1179,7 +1179,7 @@ elif st.session_state.page == "จองห้อง":
     with r1:
         r_name = st.text_input("ชื่อ-สกุล *", placeholder="ชื่อ-สกุลผู้จอง", key="r_name")
     with r2:
-        r_phone = st.text_input("เบอร์โทร / รหัสนักศึกษา *", placeholder="0801000001/661110000", key="r_phone")
+        r_phone = st.text_input("เบอร์โทรบุคลากร / รหัสนักศึกษา *", placeholder="0801000001/661110000", key="r_phone")
     with r3:
         r_status = st.selectbox("สถานะ *", STATUS_OPTIONS, key="r_status")
     r_purpose = st.text_input("วัตถุประสงค์การใช้ห้อง", placeholder="เช่น ปฏิบัติการ CT Scan ปี 3", key="r_purpose")
@@ -1191,7 +1191,7 @@ elif st.session_state.page == "จองห้อง":
 
     st.divider()
 
-    st.markdown("##### 📅 วันที่และช่วงเวลา (จองครั้งละ 1 ชั่วโมง)")
+    st.markdown("##### 📅 วันที่และช่วงเวลา")
     r_date = st.date_input("วันที่จอง *", min_value=date.today(), key="r_date")
     r_date_str = r_date.strftime("%Y-%m-%d")
 
@@ -1225,7 +1225,7 @@ elif st.session_state.page == "จองห้อง":
     r_conflict = None
 
     st.divider()
-    st.markdown("##### 📷 รูปภาพก่อนเข้าใช้ห้อง (แนะนำ — เพิ่มภายหลังได้)")
+    st.markdown("##### 📷 รูปภาพก่อนเข้าใช้ห้อง (เพิ่มภายหลังได้)")
     r_imgs = st.file_uploader(
         "อัปโหลดรูปภาพสภาพห้องก่อนเข้าใช้ (เลือกได้หลายรูป)",
         type=["jpg","jpeg","png","heic","webp"],
