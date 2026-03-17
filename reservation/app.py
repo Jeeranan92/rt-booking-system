@@ -668,7 +668,7 @@ elif st.session_state.page == "ยืมอุปกรณ์":
     with c1:
         name = st.text_input("ชื่อ-สกุล *", placeholder="ชื่อ-สกุลผู้ยืม")
     with c2:
-        phone_id = st.text_input("เบอร์โทร / รหัสนักศึกษา *", placeholder="0801000001/661110000")
+        phone_id = st.text_input("เบอร์โทรบุคลากร / รหัสนักศึกษา *", placeholder="0801000001/661110000")
     with c3:
         user_status = st.selectbox("สถานะ *", STATUS_OPTIONS)
     purpose = st.text_input("วัตถุประสงค์", placeholder="ระบุวัตถุประสงค์การใช้งาน")
