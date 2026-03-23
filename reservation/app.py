@@ -5,7 +5,13 @@ from datetime import datetime, date, timedelta
 import calendar
 import uuid
 import pandas as pd
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+import cloudinary
+import cloudinary.uploader
+import io
 from collections import Counter
+from PIL import Image, ImageDraw, ImageFont
 
 # ─── Google Sheets setup ──────────────────────────────────────────────────────
 try:
@@ -16,7 +22,7 @@ except ImportError:
     GSHEETS_AVAILABLE = False
 
 # ตั้งค่า: ใส่ SHEET_ID ของคุณตรงนี้
-SHEET_ID = "YOUR_GOOGLE_SHEET_ID_HERE"
+SHEET_ID = "1yWLwkCDuagzpBajvphTtSD9i_MiunH20aUO_slOPD9g"
 CREDS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
 
 COLUMNS = ["id","name","phone_id","user_status","purpose","item","item_type",
@@ -24,28 +30,9 @@ COLUMNS = ["id","name","phone_id","user_status","purpose","item","item_type",
            "borrow_image","return_image","notes"]
 
 @st.cache_resource(show_spinner=False)
-def get_sheet():
-    if not GSHEETS_AVAILABLE:
-        return None
-    if not os.path.exists(CREDS_FILE):
-        return None
-    try:
-        scopes = ["https://www.googleapis.com/auth/spreadsheets",
-                  "https://www.googleapis.com/auth/drive"]
-        creds  = Credentials.from_service_account_file(CREDS_FILE, scopes=scopes)
-        gc     = gspread.authorize(creds)
-        sh     = gc.open_by_key(SHEET_ID)
-        ws     = sh.sheet1
-        # สร้าง header ถ้ายังไม่มี
-        if ws.row_count == 0 or ws.cell(1,1).value != "id":
-            ws.insert_row(COLUMNS, 1)
-        return ws
-    except Exception as e:
-        st.warning(f"Google Sheets: {e} — ใช้ JSON แทน")
-        return None
 
 def _use_gsheets():
-    return GSHEETS_AVAILABLE and os.path.exists(CREDS_FILE) and SHEET_ID != "YOUR_GOOGLE_SHEET_ID_HERE"
+    return GSHEETS_AVAILABLE and "gcp" in st.secrets and SHEET_ID != "YOUR_GOOGLE_SHEET_ID_HERE"
 
 def _load_icon():
     import os as _os
@@ -338,6 +325,62 @@ def is_slot_taken(bks, item, date_str, slot):
                 return b
     return None
 
+def add_watermark(file, text="RT CMU"):
+    img = Image.open(file).convert("RGBA")
+
+    width, height = img.size
+
+    # layer สำหรับวาด
+    txt_layer = Image.new("RGBA", img.size, (255,255,255,0))
+    draw = ImageDraw.Draw(txt_layer)
+
+    # font (fallback ถ้าไม่มี)
+    try:
+        font = ImageFont.truetype("arial.ttf", 40)
+    except:
+        font = ImageFont.load_default()
+
+    # ข้อความ watermark
+    watermark_text = f"{text} | {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+
+    # ตำแหน่งล่างขวา
+    text_w, text_h = draw.textbbox((0,0), watermark_text, font=font)[2:]
+    position = (width - text_w - 20, height - text_h - 20)
+
+    # วาดข้อความ (โปร่งใส)
+    draw.text(position, watermark_text, fill=(255,255,255,180), font=font)
+
+    # รวมภาพ
+    combined = Image.alpha_composite(img, txt_layer)
+
+    # แปลงกลับเป็น bytes
+    output = io.BytesIO()
+    combined.convert("RGB").save(output, format="JPEG")
+    output.seek(0)
+
+    return output
+def upload_to_drive(file, filename, folder="rtcmu_booking"):
+    # ตั้งค่า Cloudinary
+    cloudinary.config(
+        cloud_name = st.secrets["cloudinary"]["cloud_name"],
+        api_key    = st.secrets["cloudinary"]["api_key"],
+        api_secret = st.secrets["cloudinary"]["api_secret"]
+    )
+
+    # ใส่ watermark ก่อน upload
+    file_stream = add_watermark(file)
+
+    # Upload ไป Cloudinary
+    result = cloudinary.uploader.upload(
+        file_stream,
+        folder="rtcmu_booking",
+        public_id=filename.replace(".", "_"),
+        overwrite=True,
+        resource_type="image"
+    )
+
+    return result.get("secure_url", "")
+
 def save_image(bid, img_bytes, prefix):
     """บันทึกรูปภาพ รองรับ bytes หรือ UploadedFile"""
     path = os.path.join(IMAGES_DIR, f"{prefix}_{bid}.jpg")
@@ -347,16 +390,17 @@ def save_image(bid, img_bytes, prefix):
     return path
 
 def save_images_multi(bid, files, prefix):
-    """บันทึกหลายไฟล์ คืน list ของ path ที่บันทึก"""
-    paths = []
+    urls = []
     for i, f in enumerate(files):
-        ext = os.path.splitext(f.name)[1].lower() or ".jpg"
-        path = os.path.join(IMAGES_DIR, f"{prefix}_{bid}_{i+1}{ext}")
-        f.seek(0)
-        with open(path, "wb") as fp:
-            fp.write(f.read())
-        paths.append(path)
-    return paths
+        filename = f"{prefix}_{bid}_{i+1}_{f.name}"
+        if "return" in prefix:
+            fold = "rtcmu_booking/after"
+        else:
+            fold = "rtcmu_booking/before"
+        url = upload_to_drive(f, filename, folder=fold)
+        if url:
+            urls.append(url)
+    return urls
 
 def paths_to_str(paths):
     """แปลง list path เป็น string คั่นด้วย |"""
@@ -409,14 +453,13 @@ with st.sidebar:
     _logo_candidates = [
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "RT CMU Logo_1.jpg"),
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "Logo.ico"),
-        "c:/Users/adminnistrator/Downloads/reservation/RT CMU RT CMU Logo_1.jpg",
-        "c:/Users/adminnistrator/Downloads/reservation/RT Logo.ico",
     ]
     _logo_path = next((p for p in _logo_candidates if os.path.exists(p)), None)
     if _logo_path:
         st.image(_logo_path, use_container_width=True)
     else:
         st.markdown("<div style='text-align:center;font-size:3rem;padding:.5rem 0'>🏥</div>", unsafe_allow_html=True)
+    
     st.markdown("""
     <div style='text-align:center;padding:.3rem 0 .5rem'>
         <div style='font-family:Prompt;font-weight:800;font-size:.95rem;color:#90caf9'>ภาควิชารังสีเทคนิค</div>
@@ -825,7 +868,7 @@ elif st.session_state.page == "คืนอุปกรณ์":
 """)
                 with ci2:
                     borrow_paths = str_to_paths(b.get("borrow_image",""))
-                    valid_bpaths = [p for p in borrow_paths if os.path.exists(p)]
+                    valid_bpaths = [p for p in borrow_paths if st.image(p)]
                     if valid_bpaths:
                         for i, p in enumerate(valid_bpaths):
                             st.image(p, caption=f"📷 รูปก่อนยืม {i+1}", width=180)
@@ -1157,7 +1200,8 @@ elif st.session_state.page == "จองห้อง":
             for s in TIME_SLOTS:
                 taken = is_slot_taken(bookings, room, rov_ds, s)
                 if taken:
-                    rows_html += f"<td style='background:#fde8e8;text-align:center;font-size:.75rem;color:#c62828'>{taken["name"][:6]}..</td>"
+                    name_short = taken.get("name", "")[:6]
+                    rows_html += f"<td style='background:#fde8e8;text-align:center;font-size:.75rem;color:#c62828'>{name_short}..</td>"
                 else:
                     rows_html += "<td style='background:#e8f5e9;text-align:center;font-size:.85rem'>✅</td>"
             rows_html += "</tr>"
@@ -1309,7 +1353,7 @@ elif st.session_state.page == "ยกเลิกห้อง":
 """)
                 with ci2:
                     room_bpaths = str_to_paths(b.get("borrow_image",""))
-                    valid_rbpaths = [p for p in room_bpaths if os.path.exists(p)]
+                    valid_rbpaths = [p for p in room_bpaths if st.image(p)]
                     if valid_rbpaths:
                         for i, p in enumerate(valid_rbpaths):
                             st.image(p, caption=f"📷 รูปก่อนใช้ {i+1}", width=180)
