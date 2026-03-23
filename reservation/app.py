@@ -30,6 +30,27 @@ COLUMNS = ["id","name","phone_id","user_status","purpose","item","item_type",
            "borrow_image","return_image","notes"]
 
 @st.cache_resource(show_spinner=False)
+def get_sheet():
+    if not GSHEETS_AVAILABLE:
+        return None
+    try:
+        scopes = ["https://www.googleapis.com/auth/spreadsheets",
+                  "https://www.googleapis.com/auth/drive"]
+        creds_dict = dict(st.secrets["gcp"])
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_key(SHEET_ID)
+        ws = sh.sheet1
+        if ws.row_count == 0 or ws.cell(1,1).value != "id":
+            ws.insert_row(COLUMNS, 1)
+        return ws
+    except Exception as e:
+        st.warning(f"Google Sheets: {e}")
+        return None
+
+
+@st.cache_resource(show_spinner=False)
 
 def _use_gsheets():
     return GSHEETS_AVAILABLE and "gcp" in st.secrets and SHEET_ID != "YOUR_GOOGLE_SHEET_ID_HERE"
