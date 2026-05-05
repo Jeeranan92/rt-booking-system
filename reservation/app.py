@@ -26,7 +26,7 @@ SHEET_ID = "1yWLwkCDuagzpBajvphTtSD9i_MiunH20aUO_slOPD9g"
 CREDS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
 
 COLUMNS = ["id","name","phone_id","user_status","purpose","item","item_type",
-           "quantity","date","slot","borrow_time","return_time","status",
+           "quantity","start_date","end_date","slot","borrow_time","return_time","status",
            "borrow_image","return_image","notes"]
 
 @st.cache_resource(show_spinner=False)
@@ -53,7 +53,7 @@ def get_sheet():
 @st.cache_resource(show_spinner=False)
 
 def _use_gsheets():
-    return GSHEETS_AVAILABLE and "gcp" in st.secrets and SHEET_ID != "YOUR_GOOGLE_SHEET_ID_HERE"
+    return False
 
 def _load_icon():
     import os as _os
@@ -79,6 +79,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+def get_date_range(b):
+    start = b.get("start_date") or b.get("date")
+    end   = b.get("end_date")   or b.get("date")
+    return start, end
+    
+def to_date(d):
+    if isinstance(d, str):
+        return datetime.strptime(d, "%Y-%m-%d").date()
+    return d
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -205,6 +214,7 @@ ROOMS_LIST = [
     "ห้องปฏิบัติการ X-Ray : Shimadzu",
     "ห้องปฏิบัติการ X-Ray : DRGem",
     "ห้องปฏิบัติการ X-Ray : นวัตกรรม",
+    "ห้องปฏิบัติการ Fluoroscopy : Philips",
     "ห้องปฏิบัติการ US (อัลตราซาวด์)",
     "ห้องปฏิบัติการคอมพิวเตอร์",
     "ห้องบรรยาย2 อาคาร3 ชั้น1",
@@ -338,12 +348,40 @@ def slots_overlap(s1, s2):
     except:
         return s1 == s2  # fallback สำหรับข้อมูลเก่า
 
-def is_slot_taken(bks, item, date_str, slot):
-    for b in bks:
-        b_slot = b.get("slot", b.get("hour", ""))
-        if b["item"] == item and b["date"] == date_str and b["status"] != "ยกเลิกแล้ว":
+def normalize(x):
+    return str(x).strip().lower()
+
+def is_slot_taken(bookings, item, date_str, slot):
+    d = to_date(date_str)
+
+    for b in bookings:
+
+        if b.get("item") != item:
+            continue
+
+        # ✅ เอาเฉพาะรายการที่ยัง active
+        if b.get("status") != "ยืมอยู่":
+            continue
+
+        b_start, b_end = get_date_range(b)
+
+        if not b_start or not b_end:
+            continue
+
+        b_start = to_date(b_start)
+        b_end   = to_date(b_end)
+
+        if b_start <= d <= b_end:
+            b_slot = b.get("slot", b.get("hour"))
+
+            # ✅ ถ้าไม่มี slot → ให้ถือว่า "ชนเฉพาะวันนั้น"
+            if not b_slot:
+                return b
+
+            # ✅ เช็ค overlap จริง
             if slots_overlap(slot, b_slot):
                 return b
+
     return None
 
 def add_watermark(file, text="RT CMU"):
@@ -449,6 +487,46 @@ def add_image_to_booking(bid, img_file, prefix):
                 bk["return_image"] = path
     save_bookings(bookings_data)
     return path
+
+from datetime import datetime
+
+def to_date(d):
+    if isinstance(d, str):
+        return datetime.strptime(d, "%Y-%m-%d").date()
+    return d
+
+def is_range_conflict(bookings, item, start_date, end_date, slot):
+    for b in bookings:
+
+        # ✅ ต้องเป็น item เดียวกันเท่านั้น
+        if b.get("item") != item:
+            continue
+
+        # ✅ ข้ามรายการที่ไม่ active
+        if b.get("status") in ["ยกเลิกแล้ว", "คืนแล้ว"]:
+            continue
+
+        b_start = b.get("start_date", b.get("date"))
+        b_end   = b.get("end_date", b.get("date"))
+
+        if not b_start or not b_end:
+            continue
+
+        b_start = to_date(b_start)
+        b_end   = to_date(b_end)
+
+        overlap = not (end_date < b_start or start_date > b_end)
+
+        if overlap:
+            b_slot = b.get("slot", b.get("hour", ""))
+
+            if not slot or not b_slot:
+                return b
+
+            if slots_overlap(slot, b_slot):
+                return b
+
+    return None
 
 # ─── Session state ─────────────────────────────────────────────────────────────
 today = date.today()
@@ -576,7 +654,19 @@ if st.session_state.page == "หน้าแรก":
     active_eq_n   = sum(1 for b in bookings if b["status"]=="ยืมอยู่" and b.get("item_type")=="อุปกรณ์")
     active_room_n = sum(1 for b in bookings if b["status"]=="ยืมอยู่" and b.get("item_type")=="ห้องปฏิบัติการ")
     today_str     = date.today().strftime("%Y-%m-%d")
-    today_bk      = sum(1 for b in bookings if b["date"]==today_str)
+    today_bk = sum(
+        1 for b in bookings
+        if (
+            b.get("status") == "ยืมอยู่"   # ⭐ แก้ตรงนี้
+            and (
+                lambda start, end:
+                start and end and start <= today_str <= end
+            )(
+                b.get("start_date") or b.get("date"),
+                b.get("end_date")   or b.get("date")
+            )
+        )
+    )
 
     st.markdown(f"""
     <div style='text-align:center;padding:1rem 0 2rem'>
@@ -762,8 +852,14 @@ elif st.session_state.page == "ยืมอุปกรณ์":
 
     # วันและเวลา
     st.markdown("##### 📅 วันที่และช่วงเวลา")
-    borrow_date = st.date_input("วันที่ต้องการยืม *", min_value=date.today())
-    date_str = borrow_date.strftime("%Y-%m-%d")
+    start_date, end_date = st.date_input(
+        "📅 เลือกช่วงวันที่ยืม *",
+        value=(date.today(), date.today()),
+        min_value=date.today()
+    )
+
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str   = end_date.strftime("%Y-%m-%d")
 
     EQ_STARTS = ["08:30","09:00","09:30","10:00","10:30","11:00","11:30",
                  "12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30"]
@@ -784,13 +880,17 @@ elif st.session_state.page == "ยืมอุปกรณ์":
 
     if eq_end:
         borrow_slot = f"{eq_start}–{eq_end}"
-        # เช็ก overlap กับการจองที่มีอยู่
-        conflict_bk = is_slot_taken(bookings, chosen, date_str, borrow_slot) if chosen else None
+
+        conflict_bk = is_range_conflict(bookings, chosen, start_date, end_date, borrow_slot)
+
         if conflict_bk:
-            st.error(f"⛔ ช่วง **{borrow_slot}** ทับซ้อนกับการจองของ **{conflict_bk['name']}** ({conflict_bk.get('slot','')}) — กรุณาเลือกเวลาอื่น")
+            st.error(f"⛔ ช่วง **{borrow_slot}** ทับซ้อนกับการจองของ **{conflict_bk['name']}**")
             borrow_slot = None
         else:
             st.success(f"✅ ช่วงเวลาที่เลือก: **{borrow_slot}**")
+
+            # ✅ ใส่ตรงนี้
+            st.info(f"📅 {start_str} → {end_str} | ⏰ {borrow_slot}")
     else:
         borrow_slot = None
 
@@ -834,7 +934,8 @@ elif st.session_state.page == "ยืมอุปกรณ์":
                 "id": bid, "name": name.strip(), "phone_id": phone_id.strip(),
                 "user_status": user_status, "purpose": purpose,
                 "item": chosen, "item_type": chosen_type, "quantity": chosen_qty,
-                "date": date_str, "slot": borrow_slot,
+                "start_date": start_str,
+                "end_date": end_str, "slot": borrow_slot,
                 "borrow_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "return_time": None, "status": "ยืมอยู่",
                 "borrow_image": img_path, "return_image": None, "notes": "",
@@ -870,23 +971,28 @@ elif st.session_state.page == "คืนอุปกรณ์":
         st.divider()
 
         for b in filtered:
+            start, end = get_date_range(b)
+            date_show = start if start == end else f"{start} → {end}"
+
+            slot_disp = b.get("slot", b.get("hour", "-"))   # ⭐ เพิ่มตรงนี้
+
             with st.expander(
-                f"🔖 [{b['id']}]  {b['name']}  —  {b['item']}  ({b['date']}  {b.get('slot', b.get('hour','-'))})",
+                f"🔖 [{b['id']}]  {b['name']}  —  {b['item']}  ({date_show}  {slot_disp})",
                 expanded=False
             ):
                 ci1, ci2 = st.columns([1.5, 1])
                 with ci1:
                     st.markdown(f"""
-| รายละเอียด | ข้อมูล |
-|---|---|
-| **รหัส** | `{b['id']}` |
-| **ชื่อ-สกุล** | {b['name']} |
-| **สถานะผู้ยืม** | {b['user_status']} |
-| **อุปกรณ์/ห้อง** | {b['item']} |
-| **วันที่** | {b['date']} |
-| **ช่วงเวลา** | {b.get('slot', b.get('hour','-'))} |
-| **เวลาที่ยืม** | {b['borrow_time']} |
-""")
+                        | รายละเอียด | ข้อมูล |
+                        |---|---|
+                        | **รหัส** | `{b['id']}` |
+                        | **ชื่อ-สกุล** | {b['name']} |
+                        | **ห้อง** | {b['item']} |
+                        | **วันที่** | {date_show} |
+                        | **ช่วงเวลา** | {slot_disp} |
+                        | **เวลาที่จอง** | {b['borrow_time']} |
+                        """)
+                    
                 with ci2:
                     borrow_paths = str_to_paths(b.get("borrow_image",""))
                     valid_bpaths = [p for p in borrow_paths if st.image(p)]
@@ -997,10 +1103,29 @@ elif st.session_state.page == "ปฏิทิน":
 
     def day_count(d):
         ds = f"{yr}-{mo:02d}-{d:02d}"
-        return sum(1 for b in bookings
-                   if b["date"] == ds and b["status"] != "คืนแล้ว"
-                   and (fil_item == "ทั้งหมด" or b["item"] == fil_item))
+        ds_date = datetime.strptime(ds, "%Y-%m-%d").date()
 
+        def safe_to_date(x):
+            if not x:
+                return None
+            if isinstance(x, str):
+                return datetime.strptime(x, "%Y-%m-%d").date()
+            return x
+
+        return sum(
+            1 for b in bookings
+            if (
+                b.get("status") != "คืนแล้ว"
+                and (fil_item == "ทั้งหมด" or b.get("item") == fil_item)
+                and (
+                    lambda start, end:
+                    start and end and start <= ds_date <= end
+                )(
+                    safe_to_date(b.get("start_date") or b.get("date")),
+                    safe_to_date(b.get("end_date") or b.get("date"))
+                )
+            )
+        )
     cal_matrix = calendar.monthcalendar(yr, mo)
     days_label = ["จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์", "อาทิตย์"]
 
@@ -1067,8 +1192,13 @@ elif st.session_state.page == "ปฏิทิน":
     st.markdown("#### 🔍 รายการจองตามวันที่")
     sel_date = st.date_input("เลือกวันที่", value=today_obj, key="cal_dt")
     sel_ds   = sel_date.strftime("%Y-%m-%d")
-    day_bks  = [b for b in bookings if b["date"] == sel_ds and
-                (fil_item == "ทั้งหมด" or b["item"] == fil_item)]
+    day_bks = [
+        b for b in bookings
+        if (
+            b.get("status") != "ยกเลิกแล้ว" and
+            b.get("start_date", b.get("date")) <= sel_ds <= b.get("end_date", b.get("date"))
+        )
+    ]
 
     if not day_bks:
         st.info(f"ไม่มีการจองในวันที่ {sel_ds}")
@@ -1119,7 +1249,12 @@ elif st.session_state.page == "สรุป":
     total      = len(bookings)
     active_n   = sum(1 for b in bookings if b["status"] == "ยืมอยู่")
     returned_n = sum(1 for b in bookings if b["status"] == "คืนแล้ว")
-    today_n    = sum(1 for b in bookings if b["date"] == date.today().strftime("%Y-%m-%d"))
+    today_str = date.today().strftime("%Y-%m-%d")
+
+    today_n = sum(
+        1 for b in bookings
+        if get_date_range(b)[0] == today_str
+    )
 
     c1, c2, c3, c4 = st.columns(4)
     with c1: st.markdown(f'<div class="stat-card"><h3>{total}</h3><p>🗂️ รายการทั้งหมด</p></div>', unsafe_allow_html=True)
@@ -1141,28 +1276,43 @@ elif st.session_state.page == "สรุป":
 
     flt = bookings[:]
     if flt_status != "ทั้งหมด":
-        flt = [b for b in flt if b["status"] == flt_status]
+        flt = [
+            b for b in flt
+            if (
+                get_date_range(b)[0] <= e.strftime("%Y-%m-%d") and
+                get_date_range(b)[1] >= s.strftime("%Y-%m-%d")
+            )
+        ]
     if flt_type != "ทั้งหมด":
         flt = [b for b in flt if b.get("item_type", "อุปกรณ์") == flt_type]
     if len(dr) == 2:
         s, e = dr
-        flt = [b for b in flt
-               if s.strftime("%Y-%m-%d") <= b["date"] <= e.strftime("%Y-%m-%d")]
-
+        flt = [
+            b for b in flt
+            if (
+                (b.get("start_date", b.get("date")) >= s.strftime("%Y-%m-%d")) and
+                (b.get("end_date", b.get("date")) <= e.strftime("%Y-%m-%d"))
+            )
+        ]
     st.markdown(f"#### 📋 ตารางรายการจอง ({len(flt)} รายการ)")
     if not flt:
         st.info("ไม่พบข้อมูลตามเงื่อนไข")
     else:
         rows = ""
-        for b in sorted(flt, key=lambda x: x["date"] + x.get("slot", x.get("hour","")), reverse=True):
+        for b in sorted(flt, key=lambda x: get_date_range(x)[0] + x.get("slot", x.get("hour","")), reverse=True):
+            
+            start, end = get_date_range(b)
+            date_show = start if start == end else f"{start} → {end}"
+
             pill = ('<span class="slot-pill pill-booked">ยืมอยู่</span>'
                     if b["status"] == "ยืมอยู่"
                     else '<span class="slot-pill pill-returned">คืนแล้ว</span>')
+
             rows += f"""<tr>
                 <td><code>{b['id']}</code></td>
                 <td>{b['name']}</td>
                 <td style='text-align:left'>{b['item']}</td>
-                <td>{b['date']}</td>
+                <td>{date_show}</td>
                 <td style='white-space:nowrap'>{b.get('slot', b.get('hour','-'))}</td>
                 <td>{b.get('quantity',1)}</td>
                 <td style='white-space:nowrap'>{b['borrow_time'][:16] if b.get('borrow_time') else '-'}</td>
@@ -1170,6 +1320,7 @@ elif st.session_state.page == "สรุป":
                 <td>{pill}</td>
                 <td>{b.get('notes','') or '-'}</td>
             </tr>"""
+
         st.markdown(f"""
         <div style='overflow-x:auto'>
         <table class="sum-table">
@@ -1356,27 +1507,32 @@ elif st.session_state.page == "ยกเลิกห้อง":
 
         for b in rf:
             slot_disp = b.get("slot", b.get("hour", "-"))
+
+            start, end = get_date_range(b)
+            date_show = start if start == end else f"{start} → {end}"
+
             with st.expander(
-                f"🏫 [{b['id']}]  {b['name']}  —  {b['item']}  ({b['date']}  {slot_disp})",
+                f"🏫 [{b['id']}]  {b['name']}  —  {b['item']}  ({date_show}  {slot_disp})",
                 expanded=False
             ):
-                ci1, ci2 = st.columns([1.5, 1])
+                ci1, ci2 = st.columns([1.5, 1])   # ⭐ เพิ่มตรงนี้
+
                 with ci1:
                     st.markdown(f"""
-| รายละเอียด | ข้อมูล |
-|---|---|
-| **รหัส** | `{b['id']}` |
-| **ชื่อ-สกุล** | {b['name']} |
-| **ห้อง** | {b['item']} |
-| **วันที่** | {b['date']} |
-| **ช่วงเวลา** | {slot_disp} |
-| **เวลาที่จอง** | {b['borrow_time']} |
-""")
+                    | รายละเอียด | ข้อมูล |
+                    |---|---|
+                    | **รหัส** | `{b['id']}` |
+                    | **ชื่อ-สกุล** | {b['name']} |
+                    | **ห้อง** | {b['item']} |
+                    | **วันที่** | {date_show} |
+                    | **ช่วงเวลา** | {slot_disp} |
+                    | **เวลาที่จอง** | {b['borrow_time']} |
+                    """)
+
                 with ci2:
                     room_bpaths = str_to_paths(b.get("borrow_image",""))
-                    valid_rbpaths = [p for p in room_bpaths if st.image(p)]
-                    if valid_rbpaths:
-                        for i, p in enumerate(valid_rbpaths):
+                    if room_bpaths:
+                        for i, p in enumerate(room_bpaths):
                             st.image(p, caption=f"📷 รูปก่อนใช้ {i+1}", width=180)
                     else:
                         st.caption("ไม่มีรูปก่อนใช้")
