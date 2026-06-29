@@ -272,9 +272,6 @@ def count_slot_bookings(bookings, item, date_str, slot):
 
     for b in bookings:
 
-        # 👇 DEBUG ตรงนี้ก่อน
-        st.write("ITEM:", b.get("item"), "| SLOT:", b.get("slot"))
-
         if b.get("item") != item:
             continue
 
@@ -814,45 +811,50 @@ elif st.session_state.page == "คืนอุปกรณ์":
 elif st.session_state.page == "จองห้อง":
     st.markdown('<div class="sec-title">🏫 ฟอร์มจองห้องปฏิบัติการ</div>', unsafe_allow_html=True)
 
-    with st.expander("🗺️ ดูภาพรวมความว่างของห้องทั้งหมดก่อนจอง", expanded=False):
+    import numpy as np
+    import plotly.graph_objects as go
     
-        import pandas as pd
-        import plotly.express as px
+    with st.expander("🗺️ ดูภาพรวมความว่างของห้องทั้งหมด", expanded=False):
     
-        rov_date = st.date_input(
-            "เลือกวันที่",
-            value=date.today(),
-            key="rov_date"
-        )
+        rov_date = st.date_input("เลือกวันที่", value=date.today(), key="rov_date")
         rov_ds = rov_date.strftime("%Y-%m-%d")
     
-        data = []
+        z_matrix = []
+    
         for room in ROOMS_LIST:
+            row = []
             for s in TIME_SLOTS:
                 count = count_slot_bookings(bookings, room, rov_ds, s)
                 cap = room_capacity(room)
     
-                # 0 = ว่าง, 1 = เต็ม (สลับสีง่าย)
-                ratio = count / cap if cap > 0 else 0
-                data.append([room, s, ratio])
+                # ratio 0–1
+                val = count / cap if cap else 0
+                row.append(val)
     
-        df = pd.DataFrame(data, columns=["room", "slot", "status"])
+            z_matrix.append(row)
     
-        fig = px.density_heatmap(
-            df,
-            x="slot",
-            y="room",
-            z="status",
-            color_continuous_scale=[
-                "#e8f5e9",   # ว่าง
-                "#fff176",   # เริ่มแน่น
-                "#ff9800",   # ใกล้เต็ม
-                "#c62828"    # เต็ม
-            ],
-            title="🗺️ ความหนาแน่นการใช้งานห้อง (Occupancy)"
+        z_matrix = np.array(z_matrix)
+    
+        fig = go.Figure(
+            data=go.Heatmap(
+                z=z_matrix,
+                x=TIME_SLOTS,
+                y=ROOMS_LIST,
+                colorscale=[
+                    [0.0, "#e8f5e9"],
+                    [0.5, "#fff176"],
+                    [0.8, "#ff9800"],
+                    [1.0, "#c62828"],
+                ],
+                hovertemplate="ห้อง: %{y}<br>เวลา: %{x}<br>ความหนาแน่น: %{z:.0%}<extra></extra>"
+            )
         )
     
-        fig.update_layout(height=500, margin=dict(l=10, r=10, t=40, b=10))
+        fig.update_layout(
+            height=600,
+            margin=dict(l=10, r=10, t=40, b=10),
+            xaxis=dict(side="top")
+        )
     
         st.plotly_chart(fig, use_container_width=True)
 
