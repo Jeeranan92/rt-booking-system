@@ -815,39 +815,42 @@ elif st.session_state.page == "จองห้อง":
     st.markdown('<div class="sec-title">🏫 ฟอร์มจองห้องปฏิบัติการ</div>', unsafe_allow_html=True)
 
     with st.expander("🗺️ ดูภาพรวมความว่างของห้องทั้งหมดก่อนจอง", expanded=False):
-        rov_date = st.date_input("เลือกวันที่", value=date.today(), key="rov_date", min_value=date.today())
-        rov_ds   = rov_date.strftime("%Y-%m-%d")
-        header = "<tr><th style='text-align:left;min-width:160px'>ห้อง</th>"
-        for s in TIME_SLOTS:
-            header += f"<th style='font-size:.7rem;padding:4px 3px;white-space:nowrap'>{s.replace('–','<br>')}</th>"
-        header += "</tr>"
-        rows_html = ""
+    
+        import pandas as pd
+        import plotly.express as px
+    
+        rov_date = st.date_input(
+            "เลือกวันที่",
+            value=date.today(),
+            key="rov_date"
+        )
+        rov_ds = rov_date.strftime("%Y-%m-%d")
+    
+        data = []
         for room in ROOMS_LIST:
-            rows_html += f"<tr><td style='font-size:.78rem;padding:5px 8px;white-space:nowrap'>{room}</td>"
             for s in TIME_SLOTS:
                 count = count_slot_bookings(bookings, room, rov_ds, s)
-                capacity = room_capacity(room)
-                
-                if count >= capacity:
-                    rows_html += f"""
-                    <td style='background:#fde8e8;
-                               text-align:center;
-                               color:#c62828'>
-                        {count}/{capacity}
-                    </td>
-                    """
-                else:
-                    rows_html += f"""
-                    <td style='background:#e8f5e9;text-align:center'>
-                    {count}/{room_capacity(room)}
-                    </td>
-                    """
-            rows_html += "</tr>"
-        st.markdown(f"""<div style='overflow-x:auto;margin-top:.5rem'>
-        <table style='border-collapse:collapse;width:100%'>
-            <thead style='background:#0d2137;color:white'>{header}</thead>
-            <tbody>{rows_html}</tbody>
-        </table><div style='font-size:.72rem;color:#607d8b;margin-top:6px'>✅ ว่าง &nbsp;|&nbsp; 🔴 ชื่อผู้จอง = ไม่ว่าง</div></div>""", unsafe_allow_html=True)
+                cap = room_capacity(room)
+    
+                # 0 = ว่าง, 1 = เต็ม (สลับสีง่าย)
+                status = 1 if count >= cap else 0
+    
+                data.append([room, s, status])
+    
+        df = pd.DataFrame(data, columns=["room", "slot", "status"])
+    
+        fig = px.density_heatmap(
+            df,
+            x="slot",
+            y="room",
+            z="status",
+            color_continuous_scale=["#e8f5e9", "#c62828"],
+            title="🗺️ สถานะห้อง (เขียว=ว่าง / แดง=เต็ม)"
+        )
+    
+        fig.update_layout(height=500, margin=dict(l=10, r=10, t=40, b=10))
+    
+        st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
     st.markdown("##### 👤 ข้อมูลผู้จอง")
