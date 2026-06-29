@@ -830,6 +830,7 @@ elif st.session_state.page == "จองห้อง":
                     {count}/{room_capacity(room)}
                     </td>
                     """
+            rows_html += "</tr>"
         st.markdown(f"""<div style='overflow-x:auto;margin-top:.5rem'>
         <table style='border-collapse:collapse;width:100%'>
             <thead style='background:#0d2137;color:white'>{header}</thead>
