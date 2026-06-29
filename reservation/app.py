@@ -263,6 +263,9 @@ def count_slot_bookings(bookings, item, date_str, slot):
 
     for b in bookings:
 
+        # 👇 DEBUG ตรงนี้ก่อน
+        st.write("ITEM:", b.get("item"), "| SLOT:", b.get("slot"))
+
         if b.get("item") != item:
             continue
 
