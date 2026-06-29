@@ -833,9 +833,8 @@ elif st.session_state.page == "จองห้อง":
                 cap = room_capacity(room)
     
                 # 0 = ว่าง, 1 = เต็ม (สลับสีง่าย)
-                status = 1 if count >= cap else 0
-    
-                data.append([room, s, status])
+                ratio = count / cap if cap > 0 else 0
+                data.append([room, s, ratio])
     
         df = pd.DataFrame(data, columns=["room", "slot", "status"])
     
@@ -844,8 +843,13 @@ elif st.session_state.page == "จองห้อง":
             x="slot",
             y="room",
             z="status",
-            color_continuous_scale=["#e8f5e9", "#c62828"],
-            title="🗺️ สถานะห้อง (เขียว=ว่าง / แดง=เต็ม)"
+            color_continuous_scale=[
+                "#e8f5e9",   # ว่าง
+                "#fff176",   # เริ่มแน่น
+                "#ff9800",   # ใกล้เต็ม
+                "#c62828"    # เต็ม
+            ],
+            title="🗺️ ความหนาแน่นการใช้งานห้อง (Occupancy)"
         )
     
         fig.update_layout(height=500, margin=dict(l=10, r=10, t=40, b=10))
