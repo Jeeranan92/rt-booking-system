@@ -256,32 +256,11 @@ def slots_overlap(s1, s2):
     except:
         return s1 == s2
 
-def is_slot_taken(bookings, item, date_str, slot):
+def count_slot_bookings(bookings, item, date_str, slot):
 
     d = to_date(date_str)
+    count = 0
 
-    if item in ROOMS_LIST:
-        capacity = get_room_capacity(item)
-
-        count = 0
-
-        for b in bookings:
-
-            if b.get("item") != item:
-                continue
-
-            if b.get("status") != "ยืมอยู่":
-                continue
-
-            b_start = to_date(b.get("start_date", b.get("date")))
-            b_end   = to_date(b.get("end_date", b.get("date")))
-
-            if b_start <= d <= b_end and slots_overlap(slot, b.get("slot","")):
-                count += 1
-
-        return count >= capacity
-
-    # อุปกรณ์
     for b in bookings:
 
         if b.get("item") != item:
@@ -294,14 +273,15 @@ def is_slot_taken(bookings, item, date_str, slot):
         b_end   = to_date(b.get("end_date", b.get("date")))
 
         if b_start <= d <= b_end and slots_overlap(slot, b.get("slot","")):
-            return True
+            count += 1
 
-    return False
+    return count
     
-def get_room_capacity(room_name):
-    if room_name == "ห้องปฏิบัติการคอมพิวเตอร์":
+def room_capacity(room):
+
+    if room == "ห้องปฏิบัติการคอมพิวเตอร์":
         return 35
-    elif room_name == "ห้องปฏิบัติการ US (อัลตราซาวด์)":
+    elif room == "ห้องปฏิบัติการ US (อัลตราซาวด์)":
         return 20
     else:
         return 1
@@ -805,13 +785,23 @@ elif st.session_state.page == "จองห้อง":
         for room in ROOMS_LIST:
             rows_html += f"<tr><td style='font-size:.78rem;padding:5px 8px;white-space:nowrap'>{room}</td>"
             for s in TIME_SLOTS:
-                taken = is_slot_taken(bookings, room, rov_ds, s)
-                if taken:
-                    name_short = str(taken.get("name",""))[:6]
-                    rows_html += f"<td style='background:#fde8e8;text-align:center;font-size:.75rem;color:#c62828'>{name_short}..</td>"
+                count = count_slot_bookings(bookings, room, rov_ds, s)
+                capacity = room_capacity(room)
+                
+                if count >= capacity:
+                    rows_html += f"""
+                    <td style='background:#fde8e8;
+                               text-align:center;
+                               color:#c62828'>
+                        {count}/{capacity}
+                    </td>
+                    """
                 else:
-                    rows_html += "<td style='background:#e8f5e9;text-align:center;font-size:.85rem'>✅</td>"
-            rows_html += "</tr>"
+                    rows_html += f"""
+                    <td style='background:#e8f5e9;text-align:center'>
+                    {count}/{room_capacity(room)}
+                    </td>
+                    """
         st.markdown(f"""<div style='overflow-x:auto;margin-top:.5rem'>
         <table style='border-collapse:collapse;width:100%'>
             <thead style='background:#0d2137;color:white'>{header}</thead>
