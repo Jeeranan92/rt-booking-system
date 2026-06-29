@@ -250,12 +250,19 @@ def parse_time(t):
 
 def slots_overlap(s1, s2):
     try:
+        s1 = s1.replace("-", "–")
+        s2 = s2.replace("-", "–")
+
         a_start, a_end = s1.split("–")
         b_start, b_end = s2.split("–")
-        return parse_time(a_start) < parse_time(b_end) and parse_time(b_start) < parse_time(a_end)
-    except:
-        return s1 == s2
 
+        return (
+            parse_time(a_start) < parse_time(b_end)
+            and parse_time(b_start) < parse_time(a_end)
+        )
+    except:
+        return False
+        
 def count_slot_bookings(bookings, item, date_str, slot):
 
     d = to_date(date_str)
