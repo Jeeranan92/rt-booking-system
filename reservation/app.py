@@ -285,7 +285,31 @@ def room_capacity(room):
         return 20
     else:
         return 1
-        
+
+def is_slot_taken(bookings, item, date_str, slot):
+    """
+    คืนค่า booking ถ้ามีการจองซ้อน
+    คืน None ถ้ายังว่าง
+    ใช้สำหรับอุปกรณ์ (ที่ยืมได้ครั้งละ 1 รายการ)
+    """
+    d = to_date(date_str)
+
+    for b in bookings:
+
+        if b.get("item") != item:
+            continue
+
+        if b.get("status") in ["ยกเลิกแล้ว", "คืนแล้ว"]:
+            continue
+
+        b_start = to_date(b.get("start_date", b.get("date")))
+        b_end   = to_date(b.get("end_date", b.get("date")))
+
+        if b_start <= d <= b_end and slots_overlap(slot, b.get("slot", "")):
+            return b
+
+    return None
+    
 def is_range_conflict(bookings, item, start_date, end_date, slot):
 
     # ถ้าไม่ใช่ห้อง ใช้วิธีเดิม
