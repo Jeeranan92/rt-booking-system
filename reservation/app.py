@@ -679,13 +679,17 @@ elif st.session_state.page == "ยืมอุปกรณ์":
                 "return_time": None, "status": "ยืมอยู่",
                 "borrow_image": img_path, "return_image": None, "notes": "",
             }
-            bookings.append(new_bk)
             save_one_booking(new_bk)
-            st.session_state.bookings = bookings
+
+            # โหลดข้อมูลล่าสุดจาก Google Sheets
+            st.session_state.bookings = load_bookings()
+            
             for k in ["borrow_item","borrow_item_type","borrow_qty"]:
                 st.session_state.pop(k, None)
+            
             st.success(f"🎉 ยืมสำเร็จ! รหัสการยืม: **{bid}**")
             st.balloons()
+            st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ คืนอุปกรณ์
@@ -885,11 +889,15 @@ elif st.session_state.page == "จองห้อง":
                 "return_time": None, "status": "ยืมอยู่",
                 "borrow_image": img_path, "return_image": None, "notes": "",
             }
-            bookings.append(new_bk)
+
             save_one_booking(new_bk)
-            st.session_state.bookings = bookings
+
+            # โหลดข้อมูลล่าสุดจาก Google Sheets ใหม่
+            st.session_state.bookings = load_bookings()
+            
             st.success(f"🎉 จองห้องสำเร็จ! รหัสการจอง: **{bid}**")
             st.balloons()
+            st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ ยกเลิกห้องปฏิบัติการ
