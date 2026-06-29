@@ -404,10 +404,6 @@ for k, v in defaults.items():
 
 st.session_state.bookings = load_bookings()
 bookings = st.session_state.bookings
-if _use_gsheets():
-    st.success("กำลังใช้ Google Sheets")
-else:
-    st.warning("กำลังใช้ bookings.json")
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
