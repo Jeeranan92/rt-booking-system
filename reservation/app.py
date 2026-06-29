@@ -311,7 +311,7 @@ def is_range_conflict(bookings, item, start_date, end_date, slot):
     # กรณีเป็นห้อง
     # -----------------------
 
-    capacity = get_room_capacity(item)
+    capacity = room_capacity(item)
 
     count = 0
 
