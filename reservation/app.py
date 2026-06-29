@@ -257,44 +257,103 @@ def slots_overlap(s1, s2):
         return s1 == s2
 
 def is_slot_taken(bookings, item, date_str, slot):
+
     d = to_date(date_str)
+
+    if item in ROOMS_LIST:
+        capacity = get_room_capacity(item)
+
+        count = 0
+
+        for b in bookings:
+
+            if b.get("item") != item:
+                continue
+
+            if b.get("status") != "ยืมอยู่":
+                continue
+
+            b_start = to_date(b.get("start_date", b.get("date")))
+            b_end   = to_date(b.get("end_date", b.get("date")))
+
+            if b_start <= d <= b_end and slots_overlap(slot, b.get("slot","")):
+                count += 1
+
+        return count >= capacity
+
+    # อุปกรณ์
     for b in bookings:
+
         if b.get("item") != item:
             continue
+
         if b.get("status") != "ยืมอยู่":
             continue
-        b_start, b_end = get_date_range(b)
-        if not b_start or not b_end:
-            continue
-        b_start = to_date(b_start)
-        b_end   = to_date(b_end)
-        if b_start <= d <= b_end:
-            b_slot = b.get("slot", b.get("hour"))
-            if not b_slot:
-                return b
-            if slots_overlap(slot, b_slot):
-                return b
-    return None
 
+        b_start = to_date(b.get("start_date", b.get("date")))
+        b_end   = to_date(b.get("end_date", b.get("date")))
+
+        if b_start <= d <= b_end and slots_overlap(slot, b.get("slot","")):
+            return True
+
+    return False
+    
+def get_room_capacity(room_name):
+    if room_name == "ห้องปฏิบัติการคอมพิวเตอร์":
+        return 35
+    elif room_name == "ห้องปฏิบัติการ US (อัลตราซาวด์)":
+        return 20
+    else:
+        return 1
+        
 def is_range_conflict(bookings, item, start_date, end_date, slot):
+
+    # ถ้าไม่ใช่ห้อง ใช้วิธีเดิม
+    if item not in ROOMS_LIST:
+        for b in bookings:
+            if b.get("item") != item:
+                continue
+            if b.get("status") in ["ยกเลิกแล้ว", "คืนแล้ว"]:
+                continue
+
+            b_start = to_date(b.get("start_date", b.get("date")))
+            b_end   = to_date(b.get("end_date", b.get("date")))
+
+            overlap = not (end_date < b_start or start_date > b_end)
+
+            if overlap and slots_overlap(slot, b.get("slot","")):
+                return b
+
+        return None
+
+
+    # -----------------------
+    # กรณีเป็นห้อง
+    # -----------------------
+
+    capacity = get_room_capacity(item)
+
+    count = 0
+
     for b in bookings:
+
         if b.get("item") != item:
             continue
-        if b.get("status") in ["ยกเลิกแล้ว", "คืนแล้ว"]:
+
+        if b.get("status") in ["ยกเลิกแล้ว","คืนแล้ว"]:
             continue
-        b_start = b.get("start_date", b.get("date"))
-        b_end   = b.get("end_date", b.get("date"))
-        if not b_start or not b_end:
-            continue
-        b_start = to_date(b_start)
-        b_end   = to_date(b_end)
+
+        b_start = to_date(b.get("start_date", b.get("date")))
+        b_end   = to_date(b.get("end_date", b.get("date")))
+
         overlap = not (end_date < b_start or start_date > b_end)
-        if overlap:
-            b_slot = b.get("slot", b.get("hour", ""))
-            if not slot or not b_slot:
-                return b
-            if slots_overlap(slot, b_slot):
-                return b
+
+        if overlap and slots_overlap(slot, b.get("slot","")):
+            count += 1
+
+    if count >= capacity:
+        return True
+
     return None
 
 def add_watermark(file, text="RT CMU"):
@@ -789,12 +848,13 @@ elif st.session_state.page == "จองห้อง":
     r_slot = None
     if rm_end:
         r_slot = f"{rm_start}–{rm_end}"
-        r_conflict_bk = is_range_conflict(bookings, r_room, r_date, r_date, r_slot)
-        if r_conflict_bk:
-            st.error(f"⛔ ช่วง **{r_slot}** ทับซ้อนกับการจองของ **{r_conflict_bk['name']}** — กรุณาเลือกเวลาอื่น")
+        room_full = is_range_conflict(bookings, r_room, r_date, r_date, r_slot)
+
+        if room_full:
+            st.error("⛔ ห้องนี้เต็มในช่วงเวลาที่เลือก กรุณาเลือกเวลาอื่น")
             r_slot = None
         else:
-            st.success(f"✅ ช่วงเวลาที่เลือก: **{r_slot}**")
+            st.success(f"✅ ช่วงเวลาที่เลือก: {r_slot}")
 
     st.divider()
     st.markdown("##### 📷 รูปภาพก่อนเข้าใช้ห้อง (เพิ่มภายหลังได้)")
