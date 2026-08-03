@@ -424,6 +424,43 @@ def str_to_paths(s):
         return s
     return [p for p in s.split("|") if p]
 
+# ─── Booking confirmation popup ────────────────────────────────────────────────
+@st.dialog("🎉 ยืนยันการจองสำเร็จ")
+def show_booking_confirmation():
+    b = st.session_state.get("confirm_booking")
+    if not b:
+        return
+    icon = "📋" if b.get("item_type") == "อุปกรณ์" else "🏫"
+    start = b.get("start_date") or b.get("date")
+    end   = b.get("end_date") or b.get("date")
+    date_show = start if start == end else f"{start} → {end}"
+
+    st.markdown(f"""
+    <div style='text-align:center;padding:.3rem 0 1rem'>
+        <div style='font-size:3rem'>{icon}</div>
+        <div style='font-family:Prompt;font-weight:800;font-size:1.25rem;color:#2e7d32'>
+            {'ยืมอุปกรณ์' if b.get('item_type')=='อุปกรณ์' else 'จองห้องปฏิบัติการ'}สำเร็จ!
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+| รายละเอียด | ข้อมูล |
+|---|---|
+| **รหัสการจอง** | `{b.get('id','-')}` |
+| **ชื่อ-สกุล** | {b.get('name','-')} |
+| **รายการ** | {b.get('item','-')} |
+| **จำนวน** | {b.get('quantity',1)} |
+| **วันที่** | {date_show} |
+| **ช่วงเวลา** | {b.get('slot','-')} |
+""")
+
+    st.info("📌 กรุณาบันทึกรหัสการจองนี้ไว้เพื่อใช้อ้างอิงในการคืน/ยกเลิก")
+
+    if st.button("✅ ตกลง", type="primary", use_container_width=True, key="close_confirm_dialog"):
+        st.session_state.pop("confirm_booking", None)
+        st.rerun()
+
 # ─── Session state ─────────────────────────────────────────────────────────────
 today = date.today()
 defaults = {
@@ -437,6 +474,10 @@ for k, v in defaults.items():
 
 st.session_state.bookings = load_bookings()
 bookings = st.session_state.bookings
+
+# แสดง popup ยืนยันการจอง หากมีการจอง/ยืมสำเร็จล่าสุด
+if st.session_state.get("confirm_booking"):
+    show_booking_confirmation()
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -715,9 +756,8 @@ elif st.session_state.page == "ยืมอุปกรณ์":
             
             for k in ["borrow_item","borrow_item_type","borrow_qty"]:
                 st.session_state.pop(k, None)
-            
-            st.success(f"🎉 ยืมสำเร็จ! รหัสการยืม: **{bid}**")
-            st.balloons()
+
+            st.session_state["confirm_booking"] = new_bk
             st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -936,9 +976,8 @@ elif st.session_state.page == "จองห้อง":
 
             # โหลดข้อมูลล่าสุดจาก Google Sheets ใหม่
             st.session_state.bookings = load_bookings()
-            
-            st.success(f"🎉 จองห้องสำเร็จ! รหัสการจอง: **{bid}**")
-            st.balloons()
+
+            st.session_state["confirm_booking"] = new_bk
             st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
