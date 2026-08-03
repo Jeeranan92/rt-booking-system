@@ -282,7 +282,7 @@ def count_slot_bookings(bookings, item, date_str, slot):
         b_end   = to_date(b.get("end_date", b.get("date")))
 
         if b_start <= d <= b_end and slots_overlap(slot, b.get("slot","")):
-            count += 1
+            count += int(b.get("quantity", 1) or 1)
 
     return count
     
@@ -362,7 +362,7 @@ def is_range_conflict(bookings, item, start_date, end_date, slot):
         overlap = not (end_date < b_start or start_date > b_end)
 
         if overlap and slots_overlap(slot, b.get("slot","")):
-            count += 1
+            count += int(b.get("quantity", 1) or 1)
 
     if count >= capacity:
         return True
@@ -910,6 +910,16 @@ elif st.session_state.page == "จองห้อง":
     st.markdown("##### 🏫 เลือกห้องปฏิบัติการ")
     r_room = st.selectbox("เลือกห้อง *", ROOMS_LIST, key="r_room")
 
+    r_full_room = False
+    if r_room in ["ห้องปฏิบัติการคอมพิวเตอร์", "ห้องปฏิบัติการ US (อัลตราซาวด์)"]:
+        r_full_room = st.checkbox(
+            "🔒 ต้องการจองทั้งห้อง (ห้องจะเต็มทันที ผู้อื่นจองซ้อนในช่วงเวลานี้ไม่ได้)",
+            key="r_full_room"
+        )
+        if r_full_room:
+            st.info(f"ห้องนี้จะถูกจองเต็มทั้งหมด {room_capacity(r_room)} ที่นั่ง ในช่วงเวลาที่เลือก")
+    r_quantity = room_capacity(r_room) if r_full_room else 1
+
     st.divider()
     st.markdown("##### 📅 วันที่และช่วงเวลา")
     r_date     = st.date_input("วันที่จอง *", min_value=date.today(), key="r_date")
@@ -964,7 +974,7 @@ elif st.session_state.page == "จองห้อง":
             new_bk = {
                 "id": bid, "name": r_name.strip(), "phone_id": r_phone.strip(),
                 "user_status": r_status, "purpose": r_purpose,
-                "item": r_room, "item_type": "ห้องปฏิบัติการ", "quantity": 1,
+                "item": r_room, "item_type": "ห้องปฏิบัติการ", "quantity": r_quantity,
                 "date": r_date_str, "start_date": r_date_str, "end_date": r_date_str,
                 "slot": r_slot,
                 "borrow_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
