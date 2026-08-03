@@ -156,11 +156,13 @@ ROOMS_LIST = [
 # ─── วิทยาเขต ──────────────────────────────────────────────────────────────────
 CAMPUSES = ["ภาควิชารังสีเทคนิค", "ศูนย์การศึกษาฯ หริภุญไชย"]
 
-HARIPHUNCHAI_EQUIPMENT = [
+HARIPHUNCHAI_ROOMS = [
     "X-Ray : Shimadzu (ศบบ)",
     "XRF (ศบบ)",
     "HPGe (ศบบ)",
 ]
+
+ALL_ROOMS = ROOMS_LIST + HARIPHUNCHAI_ROOMS
 
 STATUS_OPTIONS = [
     "อาจารย์ประจำภาควิชารังสีเทคนิค","บุคลากรประจำภาควิชารังสีเทคนิค",
@@ -305,10 +307,14 @@ def room_capacity(room):
         return 1
 
 def current_equipment_list():
-    """คืนรายการอุปกรณ์ตามวิทยาเขตที่เลือกอยู่ในปัจจุบัน"""
-    if st.session_state.get("campus") == CAMPUSES[1]:
-        return HARIPHUNCHAI_EQUIPMENT
+    """คืนรายการอุปกรณ์สำหรับการยืม-คืน (ใช้กับภาควิชารังสีเทคนิคเท่านั้น)"""
     return EQUIPMENT_LIST
+
+def current_rooms_list():
+    """คืนรายการห้อง/เครื่องมือสำหรับการจองห้องตามวิทยาเขตที่เลือกอยู่"""
+    if st.session_state.get("campus") == CAMPUSES[1]:
+        return HARIPHUNCHAI_ROOMS
+    return ROOMS_LIST
 
 def is_slot_taken(bookings, item, date_str, slot):
     """
@@ -337,7 +343,7 @@ def is_slot_taken(bookings, item, date_str, slot):
 def is_range_conflict(bookings, item, start_date, end_date, slot):
 
     # ถ้าไม่ใช่ห้อง ใช้วิธีเดิม
-    if item not in ROOMS_LIST:
+    if item not in ALL_ROOMS:
         for b in bookings:
             if b.get("item") != item:
                 continue
@@ -536,18 +542,18 @@ with st.sidebar:
                  key="nav_หน้าแรก"):
         st.session_state.page = "หน้าแรก"; st.rerun()
 
-    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>🔬 อุปกรณ์</div>", unsafe_allow_html=True)
-    for label, key in [("📋  ยืมอุปกรณ์","ยืมอุปกรณ์"),("📦  คืนอุปกรณ์","คืนอุปกรณ์")]:
-        if st.button(label, use_container_width=True, type="secondary", key=f"nav_{key}"):
-            st.session_state.page = key; st.rerun()
-
     if st.session_state.campus == CAMPUSES[0]:
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>🏫 ห้องปฏิบัติการ</div>", unsafe_allow_html=True)
-        for label, key in [("📅  จองห้อง","จองห้อง"),("❌  ยกเลิกห้อง","ยกเลิกห้อง")]:
+        st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>🔬 อุปกรณ์</div>", unsafe_allow_html=True)
+        for label, key in [("📋  ยืมอุปกรณ์","ยืมอุปกรณ์"),("📦  คืนอุปกรณ์","คืนอุปกรณ์")]:
             if st.button(label, use_container_width=True, type="secondary", key=f"nav_{key}"):
                 st.session_state.page = key; st.rerun()
+
+    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>🏫 ห้องปฏิบัติการ</div>", unsafe_allow_html=True)
+    for label, key in [("📅  จองห้อง","จองห้อง"),("❌  ยกเลิกห้อง","ยกเลิกห้อง")]:
+        if st.button(label, use_container_width=True, type="secondary", key=f"nav_{key}"):
+            st.session_state.page = key; st.rerun()
 
     st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
     st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>📊 ภาพรวม</div>", unsafe_allow_html=True)
@@ -615,34 +621,34 @@ if st.session_state.page == "หน้าแรก":
 
     st.divider()
     st.markdown("### 🚀 เข้าสู่ระบบ")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("""<div style='background:linear-gradient(135deg,#1565c0,#0288d1);border-radius:16px;padding:1.5rem;color:white;margin-bottom:1rem;box-shadow:0 4px 18px rgba(21,101,192,.3)'>
-            <div style='font-size:2.5rem'>📋</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>ยืมอุปกรณ์</div>
-            <div style='font-size:.82rem;opacity:.85'>จองและยืมอุปกรณ์ของภาควิชา</div></div>""", unsafe_allow_html=True)
-        if st.button("📋  เข้าหน้ายืมอุปกรณ์", use_container_width=True, type="secondary", key="home_borrow"):
-            st.session_state.page = "ยืมอุปกรณ์"; st.rerun()
-    with col2:
-        st.markdown("""<div style='background:linear-gradient(135deg,#ef6c00,#f9a825);border-radius:16px;padding:1.5rem;color:white;margin-bottom:1rem;box-shadow:0 4px 18px rgba(239,108,0,.3)'>
-            <div style='font-size:2.5rem'>📦</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>คืนอุปกรณ์</div>
-            <div style='font-size:.82rem;opacity:.85'>บันทึกการคืนอุปกรณ์</div></div>""", unsafe_allow_html=True)
-        if st.button("📦  เข้าหน้าคืนอุปกรณ์", use_container_width=True, key="home_return"):
-            st.session_state.page = "คืนอุปกรณ์"; st.rerun()
+    if st.session_state.campus == CAMPUSES[0]:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("""<div style='background:linear-gradient(135deg,#1565c0,#0288d1);border-radius:16px;padding:1.5rem;color:white;margin-bottom:1rem;box-shadow:0 4px 18px rgba(21,101,192,.3)'>
+                <div style='font-size:2.5rem'>📋</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>ยืมอุปกรณ์</div>
+                <div style='font-size:.82rem;opacity:.85'>จองและยืมอุปกรณ์ของภาควิชา</div></div>""", unsafe_allow_html=True)
+            if st.button("📋  เข้าหน้ายืมอุปกรณ์", use_container_width=True, type="secondary", key="home_borrow"):
+                st.session_state.page = "ยืมอุปกรณ์"; st.rerun()
+        with col2:
+            st.markdown("""<div style='background:linear-gradient(135deg,#ef6c00,#f9a825);border-radius:16px;padding:1.5rem;color:white;margin-bottom:1rem;box-shadow:0 4px 18px rgba(239,108,0,.3)'>
+                <div style='font-size:2.5rem'>📦</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>คืนอุปกรณ์</div>
+                <div style='font-size:.82rem;opacity:.85'>บันทึกการคืนอุปกรณ์</div></div>""", unsafe_allow_html=True)
+            if st.button("📦  เข้าหน้าคืนอุปกรณ์", use_container_width=True, key="home_return"):
+                st.session_state.page = "คืนอุปกรณ์"; st.rerun()
 
     col3, col4 = st.columns(2)
-    if st.session_state.campus == CAMPUSES[0]:
-        with col3:
-            st.markdown("""<div style='background:linear-gradient(135deg,#2e7d32,#43a047);border-radius:16px;padding:1.5rem;color:white;margin-bottom:1rem;box-shadow:0 4px 18px rgba(46,125,50,.3)'>
-                <div style='font-size:2.5rem'>📅</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>จองห้องปฏิบัติการ</div>
-                <div style='font-size:.82rem;opacity:.85'>จองห้องสำหรับการเรียนและวิจัย</div></div>""", unsafe_allow_html=True)
-            if st.button("📅  เข้าหน้าจองห้อง", use_container_width=True, key="home_room"):
-                st.session_state.page = "จองห้อง"; st.rerun()
-        with col4:
-            st.markdown("""<div style='background:linear-gradient(135deg,#c62828,#e53935);border-radius:16px;padding:1.5rem;color:white;margin-bottom:1rem;box-shadow:0 4px 18px rgba(198,40,40,.3)'>
-                <div style='font-size:2.5rem'>❌</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>ยกเลิก/คืนห้องปฏิบัติการ</div>
-                <div style='font-size:.82rem;opacity:.85'>บันทึกการยกเลิก/คืนห้องหลังใช้งาน</div></div>""", unsafe_allow_html=True)
-            if st.button("❌  เข้าหน้ายกเลิก/คืนห้อง", use_container_width=True, key="home_rroom"):
-                st.session_state.page = "ยกเลิกห้อง"; st.rerun()
+    with col3:
+        st.markdown("""<div style='background:linear-gradient(135deg,#2e7d32,#43a047);border-radius:16px;padding:1.5rem;color:white;margin-bottom:1rem;box-shadow:0 4px 18px rgba(46,125,50,.3)'>
+            <div style='font-size:2.5rem'>📅</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>จองห้องปฏิบัติการ</div>
+            <div style='font-size:.82rem;opacity:.85'>จองห้องสำหรับการเรียนและวิจัย</div></div>""", unsafe_allow_html=True)
+        if st.button("📅  เข้าหน้าจองห้อง", use_container_width=True, key="home_room"):
+            st.session_state.page = "จองห้อง"; st.rerun()
+    with col4:
+        st.markdown("""<div style='background:linear-gradient(135deg,#c62828,#e53935);border-radius:16px;padding:1.5rem;color:white;margin-bottom:1rem;box-shadow:0 4px 18px rgba(198,40,40,.3)'>
+            <div style='font-size:2.5rem'>❌</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>ยกเลิก/คืนห้องปฏิบัติการ</div>
+            <div style='font-size:.82rem;opacity:.85'>บันทึกการยกเลิก/คืนห้องหลังใช้งาน</div></div>""", unsafe_allow_html=True)
+        if st.button("❌  เข้าหน้ายกเลิก/คืนห้อง", use_container_width=True, key="home_rroom"):
+            st.session_state.page = "ยกเลิกห้อง"; st.rerun()
 
     st.divider()
     col5, col6 = st.columns(2)
@@ -897,7 +903,7 @@ elif st.session_state.page == "จองห้อง":
     
         z_matrix = []
     
-        for room in ROOMS_LIST:
+        for room in current_rooms_list():
             row = []
             for s in TIME_SLOTS:
                 count = count_slot_bookings(bookings, room, rov_ds, s)
@@ -915,7 +921,7 @@ elif st.session_state.page == "จองห้อง":
             data=go.Heatmap(
                 z=z_matrix,
                 x=TIME_SLOTS,
-                y=ROOMS_LIST,
+                y=current_rooms_list(),
                 colorscale=[
                     [0.0, "#e8f5e9"],
                     [0.5, "#fff176"],
@@ -944,7 +950,7 @@ elif st.session_state.page == "จองห้อง":
 
     st.divider()
     st.markdown("##### 🏫 เลือกห้องปฏิบัติการ")
-    r_room = st.selectbox("เลือกห้อง *", ROOMS_LIST, key="r_room")
+    r_room = st.selectbox("เลือกห้อง *", current_rooms_list(), key="r_room")
 
     r_full_room = False
     if r_room in ["ห้องปฏิบัติการคอมพิวเตอร์", "ห้องปฏิบัติการ US (อัลตราซาวด์)"]:
@@ -1032,7 +1038,8 @@ elif st.session_state.page == "จองห้อง":
 elif st.session_state.page == "ยกเลิกห้อง":
     st.markdown('<div class="sec-title">❌ ยกเลิกห้องปฏิบัติการ</div>', unsafe_allow_html=True)
 
-    active_rooms = [b for b in bookings if b["status"]=="ยืมอยู่" and b.get("item_type")=="ห้องปฏิบัติการ"]
+    active_rooms = [b for b in bookings if b["status"]=="ยืมอยู่" and b.get("item_type")=="ห้องปฏิบัติการ"
+                     and b.get("item") in current_rooms_list()]
 
     if not active_rooms:
         st.info("✅ ไม่มีห้องที่จองอยู่ในขณะนี้")
@@ -1134,7 +1141,7 @@ elif st.session_state.page == "ปฏิทิน":
                 st.session_state.cal_month += 1
             st.rerun()
 
-    all_items = ["ทั้งหมด"] + EQUIPMENT_LIST + HARIPHUNCHAI_EQUIPMENT + ROOMS_LIST
+    all_items = ["ทั้งหมด"] + EQUIPMENT_LIST + ALL_ROOMS
     fil_item = st.selectbox("กรองตามอุปกรณ์/ห้อง", all_items, key="cal_filter")
     yr = st.session_state.cal_year
     mo = st.session_state.cal_month
@@ -1203,7 +1210,7 @@ elif st.session_state.page == "ปฏิทิน":
     st.divider()
     st.markdown("#### ⏰ ตารางความว่างรายชั่วโมง")
     h1, h2 = st.columns([2, 1])
-    with h1: avail_item = st.selectbox("เลือกอุปกรณ์/ห้อง", EQUIPMENT_LIST + HARIPHUNCHAI_EQUIPMENT + ROOMS_LIST, key="avail_item")
+    with h1: avail_item = st.selectbox("เลือกอุปกรณ์/ห้อง", EQUIPMENT_LIST + ALL_ROOMS, key="avail_item")
     with h2: avail_date = st.date_input("วันที่", value=today_obj, key="avail_date")
     avail_ds = avail_date.strftime("%Y-%m-%d")
     cols = st.columns(len(TIME_SLOTS))
