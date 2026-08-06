@@ -543,7 +543,38 @@ def show_day_bookings():
     if st.button("ปิด", use_container_width=True, key="close_day_dialog"):
         st.session_state.pop("cal_selected_date", None)
         st.rerun()
+@st.dialog("⚡ ยืนยันการคืน/ยกเลิกด่วน")
+def show_quick_action_dialog():
+    b = st.session_state.get("quick_action_booking")
+    if not b:
+        return
 
+    is_room = b.get("item_type") == "ห้องปฏิบัติการ"
+    action_label = "ยกเลิกห้อง" if is_room else "คืนอุปกรณ์"
+    new_status   = "ยกเลิกแล้ว" if is_room else "คืนแล้ว"
+    icon = "🏫" if is_room else "📋"
+
+    st.markdown(f"**{icon} {'ห้อง' if is_room else 'อุปกรณ์'}:** {b.get('item','-')}")
+    st.markdown(f"**👤 ผู้จอง:** {b.get('name','-')}")
+    st.markdown(f"**⏰ ช่วงเวลา:** {b.get('slot','-')}")
+    st.caption(f"รหัสการจอง: `{b.get('id','-')}`")
+
+    notes = st.text_input("หมายเหตุ (ถ้ามี)", key="quick_notes_input")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button(f"✅ ยืนยัน{action_label}", type="primary",
+                     use_container_width=True, key="quick_confirm_btn"):
+            _ret_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            update_booking_status(b["id"], new_status, _ret_time, "", notes)
+            st.session_state.bookings = load_bookings()
+            st.session_state.pop("quick_action_booking", None)
+            st.success(f"{action_label} [{b['id']}] เรียบร้อย!")
+            st.rerun()
+    with c2:
+        if st.button("ปิด", use_container_width=True, key="quick_cancel_btn"):
+            st.session_state.pop("quick_action_booking", None)
+            st.rerun()
 # ─── Session state ─────────────────────────────────────────────────────────────
 today = date.today()
 defaults = {
@@ -564,6 +595,8 @@ if st.session_state.get("confirm_booking"):
     show_booking_confirmation()
 if st.session_state.get("cal_selected_date"):
     show_day_bookings()
+if st.session_state.get("quick_action_booking"):
+    show_quick_action_dialog()
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     _logo_candidates = [
@@ -881,7 +914,27 @@ elif st.session_state.page == "คืนอุปกรณ์":
         filtered = [b for b in active if not search or
                     search.lower() in str(b["name"]).lower() or search.upper() in b["id"].upper()]
         st.markdown(f"**พบ {len(filtered)} รายการที่กำลังยืมอยู่**")
+
+        st.markdown("##### ⚡ ตารางด่วน — คลิก 'คืน' เพื่อบันทึกทันที (ไม่ต้องแนบรูป)")
+        hc = st.columns([1.1, 1.4, 2.3, 1.3, 1.1, 0.9])
+        for h, txt in zip(hc, ["รหัส", "ผู้ยืม", "อุปกรณ์", "วันที่", "เวลา", ""]):
+            h.markdown(f"**{txt}**")
+        
+        for b in filtered:
+            start, end = get_date_range(b)
+            date_show = start if start == end else f"{start} → {end}"
+            r1, r2, r3, r4, r5, r6 = st.columns([1.1, 1.4, 2.3, 1.3, 1.1, 0.9])
+            r1.code(b["id"])
+            r2.write(b["name"])
+            r3.write(b["item"])
+            r4.write(date_show)
+            r5.write(b.get("slot", "-"))
+            if r6.button("คืน", key=f"quick_ret_{b['id']}", use_container_width=True, type="primary"):
+                st.session_state.quick_action_booking = b
+                st.rerun()
+        
         st.divider()
+        st.markdown("##### 📋 รายละเอียด (แนบรูป/หมายเหตุ)")
 
         for b in filtered:
             start, end = get_date_range(b)
@@ -1111,8 +1164,28 @@ elif st.session_state.page == "ยกเลิกห้อง":
         rf = [b for b in active_rooms if not rs or
               rs.lower() in str(b["name"]).lower() or rs.upper() in b["id"].upper()]
         st.markdown(f"**พบ {len(rf)} ห้องที่จองอยู่**")
+        
+        st.markdown("##### ⚡ ตารางด่วน — คลิก 'ยกเลิก' เพื่อบันทึกทันที (ไม่ต้องแนบรูป)")
+        hc2 = st.columns([1.1, 1.4, 2.3, 1.3, 1.1, 0.9])
+        for h, txt in zip(hc2, ["รหัส", "ผู้จอง", "ห้อง", "วันที่", "เวลา", ""]):
+            h.markdown(f"**{txt}**")
+        
+        for b in rf:
+            start, end = get_date_range(b)
+            date_show = start if start == end else f"{start} → {end}"
+            r1, r2, r3, r4, r5, r6 = st.columns([1.1, 1.4, 2.3, 1.3, 1.1, 0.9])
+            r1.code(b["id"])
+            r2.write(b["name"])
+            r3.write(b["item"])
+            r4.write(date_show)
+            r5.write(b.get("slot", "-"))
+            if r6.button("ยกเลิก", key=f"quick_cancel_room_{b['id']}", use_container_width=True, type="primary"):
+                st.session_state.quick_action_booking = b
+                st.rerun()
+        
         st.divider()
-
+        st.markdown("##### 📋 รายละเอียด (แนบรูป/หมายเหตุ)")
+        
         for b in rf:
             slot_disp = b.get("slot", b.get("hour", "-"))
             start, end = get_date_range(b)
