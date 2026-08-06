@@ -482,6 +482,37 @@ def show_booking_confirmation():
         st.session_state.pop("confirm_booking", None)
         st.rerun()
 
+@st.dialog("📅 รายการจองในวันที่")
+def show_day_bookings():
+    ds = st.session_state.get("cal_selected_date")
+    if not ds:
+        return
+    d_obj = datetime.strptime(ds, "%Y-%m-%d").date()
+    st.markdown(f"### {d_obj.strftime('%d/%m/%Y')}")
+
+    day_bks = [b for b in st.session_state.bookings if b.get("status") != "ยกเลิกแล้ว" and
+               (b.get("start_date") or b.get("date","")) <= ds <= (b.get("end_date") or b.get("date",""))]
+
+    if not day_bks:
+        st.info("ไม่มีการจองในวันนี้")
+    else:
+        for b in sorted(day_bks, key=lambda x: x.get("slot","")):
+            pill = "🟢 ยืมอยู่" if b["status"]=="ยืมอยู่" else "🔵 คืนแล้ว"
+            icon = "📋" if b.get("item_type")=="อุปกรณ์" else "🏫"
+            st.markdown(f"""
+            <div style='background:#f8fafc;border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;
+                border-left:3.5px solid #1565c0'>
+                <b>{icon} {b['item']}</b> — {pill}<br>
+                <span style='color:#0d2137'>⏰ {b.get('slot','-')}</span><br>
+                <span style='color:#607d8b;font-size:.85rem'>👤 {b['name']} | {b.get('user_status','')}</span><br>
+                <span style='color:#90a4ae;font-size:.78rem'>รหัส: {b['id']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    if st.button("ปิด", use_container_width=True, key="close_day_dialog"):
+        st.session_state.pop("cal_selected_date", None)
+        st.rerun()
+
 # ─── Session state ─────────────────────────────────────────────────────────────
 today = date.today()
 defaults = {
@@ -500,7 +531,8 @@ bookings = st.session_state.bookings
 # แสดง popup ยืนยันการจอง หากมีการจอง/ยืมสำเร็จล่าสุด
 if st.session_state.get("confirm_booking"):
     show_booking_confirmation()
-
+if st.session_state.get("cal_selected_date"):
+    show_day_bookings()
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     _logo_candidates = [
@@ -1160,33 +1192,31 @@ elif st.session_state.page == "ปฏิทิน":
 
     cal_matrix = calendar.monthcalendar(yr, mo)
     days_label = ["จันทร์","อังคาร","พุธ","พฤหัส","ศุกร์","เสาร์","อาทิตย์"]
-    html = '<div class="cal-wrap"><table class="cal-table"><thead><tr>'
+    
+    hdr_cols = st.columns(7)
     for i, dl in enumerate(days_label):
-        cls = "cal-th cal-sun" if i == 6 else "cal-th"
-        html += f'<th class="{cls}">{dl}</th>'
-    html += "</tr></thead><tbody>"
+        color = "#c62828" if i == 6 else "#546e7a"
+        hdr_cols[i].markdown(
+            f"<div style='text-align:center;font-weight:700;font-size:.85rem;color:{color};"
+            f"background:#f0f4f8;border-radius:6px;padding:6px 0'>{dl}</div>",
+            unsafe_allow_html=True)
+    
     today_obj = date.today()
     for week in cal_matrix:
-        html += "<tr>"
+        week_cols = st.columns(7)
         for col_i, d in enumerate(week):
-            is_sun = (col_i == 6)
-            if d == 0:
-                html += '<td class="cal-td cal-empty"></td>'; continue
-            cnt = day_count(d)
-            is_today = (d == today_obj.day and mo == today_obj.month and yr == today_obj.year)
-            td_cls = "cal-td" + (" cal-today" if is_today else (" cal-has" if cnt > 0 else ""))
-            dn_cls = "cal-daynum cal-daynum-sun" if is_sun else "cal-daynum"
-            today_badge = '<div style="font-size:.58rem;background:#1565c0;color:white;border-radius:6px;padding:0 5px;margin:2px auto;width:fit-content">วันนี้</div>' if is_today else ""
-            dot_color = "#c62828" if is_sun else "#1565c0"
-            dots = ""
-            if cnt > 0:
-                dots = "".join(f'<span class="cal-dot" style="background:{dot_color}"></span>' for _ in range(min(cnt,5)))
-                if cnt > 5: dots += f'<span style="font-size:.6rem;color:#ef6c00">+{cnt-5}</span>'
-            cnt_txt = f'<div style="font-size:.65rem;color:{dot_color};font-weight:700">{cnt} รายการ</div>' if cnt > 0 else ""
-            html += f'<td class="{td_cls}"><div class="{dn_cls}">{d}</div>{today_badge}<div style="margin-top:3px">{dots}</div>{cnt_txt}</td>'
-        html += "</tr>"
-    html += "</tbody></table></div>"
-    st.markdown(html, unsafe_allow_html=True)
+            with week_cols[col_i]:
+                if d == 0:
+                    st.markdown("<div style='height:56px'></div>", unsafe_allow_html=True)
+                    continue
+                cnt = day_count(d)
+                is_today = (d == today_obj.day and mo == today_obj.month and yr == today_obj.year)
+                label = f"{d}" + (f" 🔶{cnt}" if cnt > 0 else "")
+                if st.button(label, key=f"cal_day_{yr}_{mo}_{d}",
+                             use_container_width=True,
+                             type="primary" if is_today else "secondary"):
+                    st.session_state.cal_selected_date = date(yr, mo, d).strftime("%Y-%m-%d")
+                    st.rerun()
 
     st.divider()
     st.markdown("#### 🔍 รายการจองตามวันที่")
