@@ -127,6 +127,44 @@ html, body, [class*="css"] { font-family: 'Sarabun', sans-serif; }
 .sum-table td { padding:7px 10px; border-bottom:1px solid #eceff1; }
 .sum-table tr:nth-child(even) td { background:#f5f7fa; }
 .sum-table tr:hover td { background:#e3f0ff; }
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Prompt:wght@400;600;700;800&display=swap');
+html, body, [class*="css"] { font-family: 'Sarabun', sans-serif; }
+... (โค้ด CSS เดิมทั้งหมด) ...
+.sum-table tr:hover td { background:#e3f0ff; }
+
+/* ปฏิทินแบบปุ่มคลิกได้ */
+.cal-cell-marker + div .stButton > button {
+    background: #f8fafc !important;
+    border: 1.5px solid #e3eaf5 !important;
+    border-radius: 10px !important;
+    min-height: 64px;
+    white-space: pre-line;
+    line-height: 1.5;
+    color: #263238 !important;
+    font-weight: 700;
+    font-size: .95rem;
+    padding: 6px 2px !important;
+}
+.cal-cell-marker.cal-has + div .stButton > button {
+    background: #fff8e1 !important;
+    border-color: #ffe082 !important;
+}
+.cal-cell-marker.cal-today + div .stButton > button {
+    background: #e3f2fd !important;
+    border-color: #1565c0 !important;
+    color: #0d2137 !important;
+}
+.cal-cell-marker + div .stButton > button:hover {
+    border-color: #1565c0 !important;
+    color: #1565c0 !important;
+}
+.cal-count-line {
+    font-size: .68rem;
+    font-weight: 600;
+    color: #ef6c00;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1201,20 +1239,27 @@ elif st.session_state.page == "ปฏิทิน":
             f"background:#f0f4f8;border-radius:6px;padding:6px 0'>{dl}</div>",
             unsafe_allow_html=True)
     
+    st.markdown("<div style='margin:4px 0'></div>", unsafe_allow_html=True)
+    
     today_obj = date.today()
     for week in cal_matrix:
         week_cols = st.columns(7)
         for col_i, d in enumerate(week):
             with week_cols[col_i]:
                 if d == 0:
-                    st.markdown("<div style='height:56px'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height:64px'></div>", unsafe_allow_html=True)
                     continue
                 cnt = day_count(d)
                 is_today = (d == today_obj.day and mo == today_obj.month and yr == today_obj.year)
-                label = f"{d}" + (f" 🔶{cnt}" if cnt > 0 else "")
-                if st.button(label, key=f"cal_day_{yr}_{mo}_{d}",
-                             use_container_width=True,
-                             type="primary" if is_today else "secondary"):
+    
+                marker_cls = "cal-cell-marker"
+                if is_today: marker_cls += " cal-today"
+                elif cnt > 0: marker_cls += " cal-has"
+    
+                label = f"{d}\n\n{cnt} รายการ" if cnt > 0 else f"{d}\n\n\u00A0"
+    
+                st.markdown(f"<div class='{marker_cls}'></div>", unsafe_allow_html=True)
+                if st.button(label, key=f"cal_day_{yr}_{mo}_{d}", use_container_width=True):
                     st.session_state.cal_selected_date = date(yr, mo, d).strftime("%Y-%m-%d")
                     st.rerun()
 
