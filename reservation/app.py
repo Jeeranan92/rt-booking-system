@@ -1222,7 +1222,7 @@ elif st.session_state.page == "ปฏิทิน":
                 safe_to_date(b.get("end_date") or b.get("date"))))
 
     cal_matrix = calendar.monthcalendar(yr, mo)
-    days_label = ["จันทร์","อังคาร","พุธ","พฤหัส","ศุกร์","เสาร์","อาทิตย์"]
+    days_label = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัส","ศุกร์","เสาร์"]
     
     hdr_cols = st.columns(7)
     for i, dl in enumerate(days_label):
