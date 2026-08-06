@@ -912,7 +912,7 @@ elif st.session_state.page == "คืนอุปกรณ์":
     else:
         search = st.text_input("🔍 ค้นหาด้วยชื่อผู้ยืม หรือ รหัสการยืม", placeholder="พิมพ์ชื่อ หรือรหัส เช่น A1B2C3D4")
         filtered = [b for b in active if not search or
-                    search.lower() in str(b["name"]).lower() or search.upper() in b["id"].upper()]
+                    search.lower() in str(b["name"]).lower() or search.upper() in str(b["id"]).upper()]
         st.markdown(f"**พบ {len(filtered)} รายการที่กำลังยืมอยู่**")
 
         st.markdown("##### ⚡ ตารางด่วน — คลิก 'คืน' เพื่อบันทึกทันที (ไม่ต้องแนบรูป)")
@@ -1162,14 +1162,15 @@ elif st.session_state.page == "ยกเลิกห้อง":
     else:
         rs = st.text_input("🔍 ค้นหาด้วยชื่อผู้จอง หรือ รหัสการจอง", placeholder="พิมพ์ชื่อ หรือรหัส", key="room_search")
         rf = [b for b in active_rooms if not rs or
-              rs.lower() in str(b["name"]).lower() or rs.upper() in b["id"].upper()]
+              rs.lower() in str(b["name"]).lower() or rs.upper() in str(b["id"]).upper()]
+
         st.markdown(f"**พบ {len(rf)} ห้องที่จองอยู่**")
-        
+
         st.markdown("##### ⚡ ตารางด่วน — คลิก 'ยกเลิก' เพื่อบันทึกทันที (ไม่ต้องแนบรูป)")
         hc2 = st.columns([1.1, 1.4, 2.3, 1.3, 1.1, 0.9])
         for h, txt in zip(hc2, ["รหัส", "ผู้จอง", "ห้อง", "วันที่", "เวลา", ""]):
             h.markdown(f"**{txt}**")
-        
+
         for b in rf:
             start, end = get_date_range(b)
             date_show = start if start == end else f"{start} → {end}"
@@ -1182,10 +1183,10 @@ elif st.session_state.page == "ยกเลิกห้อง":
             if r6.button("ยกเลิก", key=f"quick_cancel_room_{b['id']}", use_container_width=True, type="primary"):
                 st.session_state.quick_action_booking = b
                 st.rerun()
-        
+
         st.divider()
         st.markdown("##### 📋 รายละเอียด (แนบรูป/หมายเหตุ)")
-        
+
         for b in rf:
             slot_disp = b.get("slot", b.get("hour", "-"))
             start, end = get_date_range(b)
