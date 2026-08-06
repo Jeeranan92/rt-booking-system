@@ -528,17 +528,17 @@ def show_day_bookings():
         st.info("ไม่มีการจองในวันนี้")
     else:
         for b in sorted(day_bks, key=lambda x: x.get("slot","")):
-            pill = "🟢 ยืมอยู่" if b["status"]=="ยืมอยู่" else "🔵 คืนแล้ว"
-            icon = "📋" if b.get("item_type")=="อุปกรณ์" else "🏫"
-            st.markdown(f"""
-            <div style='background:#f8fafc;border-radius:10px;padding:.7rem 1rem;margin-bottom:.5rem;
-                border-left:3.5px solid #1565c0'>
-                <b>{icon} {b['item']}</b> — {pill}<br>
-                <span style='color:#0d2137'>⏰ {b.get('slot','-')}</span><br>
-                <span style='color:#607d8b;font-size:.85rem'>👤 {b['name']} | {b.get('user_status','')}</span><br>
-                <span style='color:#90a4ae;font-size:.78rem'>รหัส: {b['id']}</span>
-            </div>
-            """, unsafe_allow_html=True)
+            is_room = b.get("item_type") == "ห้องปฏิบัติการ"
+            icon = "🏫" if is_room else "📋"
+            item_label = "ห้อง" if is_room else "อุปกรณ์"
+            item_name = b.get("item", "-")
+            status_txt = "🟢 ยืมอยู่" if b.get("status") == "ยืมอยู่" else "🔵 คืนแล้ว"
+
+            with st.container(border=True):
+                st.markdown(f"**{icon} {item_label}:** {item_name}")
+                st.markdown(f"**⏰ ช่วงเวลา:** {b.get('slot','-')}  |  **สถานะ:** {status_txt}")
+                st.markdown(f"**👤 ผู้จอง:** {b.get('name','-')}  ({b.get('user_status','-')})")
+                st.caption(f"รหัสการจอง: `{b.get('id','-')}`")
 
     if st.button("ปิด", use_container_width=True, key="close_day_dialog"):
         st.session_state.pop("cal_selected_date", None)
