@@ -127,13 +127,6 @@ html, body, [class*="css"] { font-family: 'Sarabun', sans-serif; }
 .sum-table td { padding:7px 10px; border-bottom:1px solid #eceff1; }
 .sum-table tr:nth-child(even) td { background:#f5f7fa; }
 .sum-table tr:hover td { background:#e3f0ff; }
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Prompt:wght@400;600;700;800&display=swap');
-html, body, [class*="css"] { font-family: 'Sarabun', sans-serif; }
-... (โค้ด CSS เดิมทั้งหมด) ...
-.sum-table tr:hover td { background:#e3f0ff; }
-
 /* ปฏิทินแบบปุ่มคลิกได้ */
 .cal-cell-marker + div .stButton > button {
     background: #f8fafc !important;
