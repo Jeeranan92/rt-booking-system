@@ -1220,7 +1220,7 @@ elif st.session_state.page == "ยกเลิกห้อง":
         st.divider()
         st.markdown("##### 📋 รายละเอียด (แนบรูป/หมายเหตุ)")
 
-        for b in rf:
+        for i, b in enumerate(rf):
             slot_disp = b.get("slot", b.get("hour", "-"))
             start, end = get_date_range(b)
             date_show = start if start == end else f"{start} → {end}"
