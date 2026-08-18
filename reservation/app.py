@@ -1118,12 +1118,12 @@ elif st.session_state.page == "จองห้อง":
     with col_rb:
         r_submit = st.button("✅ ยืนยันการจองห้อง", type="primary", use_container_width=True, key="r_submit")
 
-        if r_submit:
-            if not r_name.strip() or not r_phone.strip():
-                st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษา")
-            elif not r_slot:
-                st.error("ไม่มีช่วงเวลาว่าง กรุณาเลือกวันอื่น")
-            else:
+            if r_submit:
+                if not r_name.strip() or not r_phone.strip():
+                    st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษา")
+                elif not r_slot:
+                    st.error("ไม่มีช่วงเวลาว่าง กรุณาเลือกวันอื่น")
+                else:
             bid = str(uuid.uuid4())[:8].upper()
             img_path = ""
             if r_imgs:
