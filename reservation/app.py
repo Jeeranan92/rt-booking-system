@@ -333,7 +333,7 @@ def room_capacity(room):
     if room == "ห้องปฏิบัติการคอมพิวเตอร์":
         return 35
     elif room == "ห้องปฏิบัติการ US (อัลตราซาวด์)":
-        return 20
+        return 32
     else:
         return 1
 
