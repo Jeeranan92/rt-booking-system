@@ -1114,39 +1114,68 @@ elif st.session_state.page == "จองห้อง":
             with cols_r[i % 4]: st.image(f, caption=f"รูป {i+1}", width=150)
 
     st.divider()
+
     col_rb, _ = st.columns([1, 3])
+    
     with col_rb:
-        r_submit = st.button("✅ ยืนยันการจองห้อง", type="primary", use_container_width=True, key="r_submit")
-
-            if r_submit:
-                if not r_name.strip() or not r_phone.strip():
-                    st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษา")
-                elif not r_slot:
-                    st.error("ไม่มีช่วงเวลาว่าง กรุณาเลือกวันอื่น")
-                else:
-            bid = str(uuid.uuid4())[:8].upper()
-            img_path = ""
-            if r_imgs:
-                paths = save_images_multi(bid, r_imgs, "room_borrow")
-                img_path = paths_to_str(paths)
-            new_bk = {
-                "id": bid, "name": r_name.strip(), "phone_id": r_phone.strip(),
-                "user_status": r_status, "purpose": r_purpose,
-                "item": r_room, "item_type": "ห้องปฏิบัติการ", "quantity": r_quantity,
-                "date": r_date_str, "start_date": r_date_str, "end_date": r_date_str,
-                "slot": r_slot,
-                "borrow_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "return_time": None, "status": "ยืมอยู่",
-                "borrow_image": img_path, "return_image": None, "notes": "",
-            }
-
-            save_one_booking(new_bk)
-
-            # โหลดข้อมูลล่าสุดจาก Google Sheets ใหม่
-            st.session_state.bookings = load_bookings()
-
-            st.session_state["confirm_booking"] = new_bk
-            st.rerun()
+    
+        r_submit = st.button(
+            "✅ ยืนยันการจองห้อง",
+            type="primary",
+            use_container_width=True,
+            key="r_submit"
+        )
+    
+        if r_submit:
+    
+            if not r_name.strip() or not r_phone.strip():
+    
+                st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษา")
+    
+            elif not r_slot:
+    
+                st.error("ไม่มีช่วงเวลาว่าง กรุณาเลือกวันอื่น")
+    
+            else:
+    
+                bid = str(uuid.uuid4())[:8].upper()
+    
+                img_path = ""
+    
+                if r_imgs:
+    
+                    paths = save_images_multi(bid, r_imgs, "room_borrow")
+                    img_path = paths_to_str(paths)
+    
+                new_bk = {
+                    "id": bid,
+                    "name": r_name.strip(),
+                    "phone_id": r_phone.strip(),
+                    "user_status": r_status,
+                    "purpose": r_purpose,
+                    "item": r_room,
+                    "item_type": "ห้องปฏิบัติการ",
+                    "quantity": r_quantity,
+                    "date": r_date_str,
+                    "start_date": r_date_str,
+                    "end_date": r_date_str,
+                    "slot": r_slot,
+                    "borrow_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "return_time": None,
+                    "status": "ยืมอยู่",
+                    "borrow_image": img_path,
+                    "return_image": None,
+                    "notes": "",
+                }
+    
+                save_one_booking(new_bk)
+    
+                # โหลดข้อมูลล่าสุดจาก Google Sheets ใหม่
+                st.session_state.bookings = load_bookings()
+    
+                st.session_state["confirm_booking"] = new_bk
+    
+                st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ ยกเลิกห้องปฏิบัติการ
