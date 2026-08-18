@@ -454,7 +454,8 @@ def upload_to_drive(file, filename, folder="rtcmu_booking"):
         )
         return result.get("secure_url", "")
     except Exception as e:
-        st.warning(f"⚠️ อัปโหลดรูป '{getattr(file, 'name', filename)}' ไม่สำเร็จ: {e}")
+        st.error(f"DEBUG - Cloudinary error เต็ม: {repr(e)}")
+        st.warning(f"⚠️ อัปโหลดรูป '{getattr(file, 'name', filename)}' ไม่สำเร็จ")
         return ""
 
 def save_images_multi(bid, files, prefix):
