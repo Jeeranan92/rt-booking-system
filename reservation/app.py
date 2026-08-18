@@ -538,6 +538,7 @@ def show_day_bookings():
                 st.markdown(f"**{icon} {item_label}:** {item_name}")
                 st.markdown(f"**⏰ ช่วงเวลา:** {b.get('slot','-')}  |  **สถานะ:** {status_txt}")
                 st.markdown(f"**👤 ผู้จอง:** {b.get('name','-')}  ({b.get('user_status','-')})")
+                st.markdown(f"**🎯 วัตถุประสงค์:** {b.get('purpose','-') or '-'}")
                 st.caption(f"รหัสการจอง: `{b.get('id','-')}`")
 
     if st.button("ปิด", use_container_width=True, key="close_day_dialog"):
