@@ -5,11 +5,16 @@ from datetime import datetime, date, timedelta
 import calendar
 import uuid
 import pandas as pd
-import cloudinary
-import cloudinary.uploader
 import io
 from collections import Counter
 from PIL import Image, ImageDraw, ImageFont
+
+try:
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaIoBaseUpload
+    GDRIVE_AVAILABLE = True
+except ImportError:
+    GDRIVE_AVAILABLE = False
 
 # ─── Google Sheets setup ──────────────────────────────────────────────────────
 try:
@@ -20,6 +25,7 @@ except ImportError:
     GSHEETS_AVAILABLE = False
 
 SHEET_ID = "1yWLwkCDuagzpBajvphTtSD9i_MiunH20aUO_slOPD9g"
+DRIVE_FOLDER_ID = "1_6qt0qapzAZFqscbEudSiB0s2zuiDe39"
 
 COLUMNS = ["id","name","phone_id","user_status","purpose","item","item_type",
            "quantity","start_date","end_date","slot","borrow_time","return_time","status",
@@ -44,7 +50,20 @@ def get_sheet():
     except Exception as e:
         st.warning(f"Google Sheets: {e}")
         return None
-
+@st.cache_resource(show_spinner=False)
+def get_drive_service():
+    if not GDRIVE_AVAILABLE:
+        return None
+    try:
+        scopes = ["https://www.googleapis.com/auth/drive"]
+        creds_dict = dict(st.secrets["gcp"])
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        return build("drive", "v3", credentials=creds)
+    except Exception as e:
+        st.warning(f"Google Drive: {e}")
+        return None
+        
 def _use_gsheets():
     return GSHEETS_AVAILABLE and get_sheet() is not None
 
@@ -440,22 +459,31 @@ def add_watermark(file, text="RT CMU"):
     return output
 
 def upload_to_drive(file, filename, folder="rtcmu_booking"):
-    cloudinary.config(
-        cloud_name = st.secrets["cloudinary"]["cloud_name"],
-        api_key    = st.secrets["cloudinary"]["api_key"],
-        api_secret = st.secrets["cloudinary"]["api_secret"]
-    )
     try:
+        service = get_drive_service()
+        if not service:
+            st.warning("⚠️ เชื่อมต่อ Google Drive ไม่ได้")
+            return ""
+
         file_stream = add_watermark(file)
-        result = cloudinary.uploader.upload(
-            file_stream, folder=folder,
-            public_id=filename.replace(".", "_"),
-            overwrite=True, resource_type="image"
-        )
-        return result.get("secure_url", "")
+        media = MediaIoBaseUpload(file_stream, mimetype="image/jpeg", resumable=False)
+        file_metadata = {
+            "name": filename,
+            "parents": [DRIVE_FOLDER_ID],
+        }
+        uploaded = service.files().create(
+            body=file_metadata, media_body=media, fields="id"
+        ).execute()
+        file_id = uploaded.get("id")
+
+        service.permissions().create(
+            fileId=file_id,
+            body={"role": "reader", "type": "anyone"},
+        ).execute()
+
+        return f"https://lh3.googleusercontent.com/d/{file_id}"
     except Exception as e:
-        st.error(f"DEBUG - Cloudinary error เต็ม: {repr(e)}")
-        st.warning(f"⚠️ อัปโหลดรูป '{getattr(file, 'name', filename)}' ไม่สำเร็จ")
+        st.warning(f"⚠️ อัปโหลดรูป '{getattr(file, 'name', filename)}' ไม่สำเร็จ: {e}")
         return ""
 
 def save_images_multi(bid, files, prefix):
