@@ -183,8 +183,6 @@ ROOMS_LIST = [
     "ห้องปฏิบัติการ Fluoroscopy : Philips","ห้องปฏิบัติการ US (อัลตราซาวด์)",
     "ห้องปฏิบัติการคอมพิวเตอร์","ห้องบรรยาย2 อาคาร3 ชั้น1","ห้องตรวจมวลกระดูก BMD : HOLOGIC",
 ]
-
-US_MACHINES = ["Sonoscope", "Canon", "GE1", "GE2"]
 # ─── วิทยาเขต ──────────────────────────────────────────────────────────────────
 CAMPUSES = ["ภาควิชารังสีเทคนิค", "ศูนย์การศึกษาฯ หริภุญไชย"]
 
@@ -570,7 +568,6 @@ def show_quick_action_dialog():
             _ret_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             update_booking_status(b["id"], new_status, _ret_time, "", notes)
             st.session_state.bookings = load_bookings()
-            st.session_state.pop("r_us_machines_sel", None)
             st.session_state.pop("quick_action_booking", None)
             st.success(f"{action_label} [{b['id']}] เรียบร้อย!")
             st.rerun()
@@ -1081,31 +1078,6 @@ elif st.session_state.page == "จองห้อง":
             st.info(f"ห้องนี้จะถูกจองเต็มทั้งหมด {room_capacity(r_room)} ที่นั่ง ในช่วงเวลาที่เลือก")
     r_quantity = room_capacity(r_room) if r_full_room else 1
 
-    # ── เลือกเครื่อง US ──────────────────────────────────────────
-    r_us_machines = []
-    if r_room == "ห้องปฏิบัติการ US (อัลตราซาวด์)":
-        st.markdown("##### 🖥️ เลือกเครื่อง US ที่ต้องการใช้")
-        if "r_us_machines_sel" not in st.session_state:
-            st.session_state.r_us_machines_sel = []
-
-        mcol1, mcol2 = st.columns([3, 1])
-        with mcol1:
-            r_us_machines = st.multiselect(
-                "เลือกเครื่อง (เลือกได้มากกว่า 1 เครื่อง)",
-                US_MACHINES,
-                key="r_us_machines_sel"
-            )
-        with mcol2:
-            st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-            if st.button("✅ เลือกทั้งหมด", key="r_us_select_all", use_container_width=True):
-                st.session_state.r_us_machines_sel = US_MACHINES.copy()
-                st.rerun()
-
-        if r_us_machines:
-            st.success(f"เครื่องที่เลือก: **{', '.join(r_us_machines)}**")
-        else:
-            st.warning("⚠️ กรุณาเลือกเครื่อง US อย่างน้อย 1 เครื่อง")
-
     st.divider()
     st.markdown("##### 📅 วันที่และช่วงเวลา")
     r_date     = st.date_input("วันที่จอง *", min_value=date.today(), key="r_date")
@@ -1151,8 +1123,6 @@ elif st.session_state.page == "จองห้อง":
             st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษา")
         elif not r_slot:
             st.error("ไม่มีช่วงเวลาว่าง กรุณาเลือกวันอื่น")
-        elif r_room == "ห้องปฏิบัติการ US (อัลตราซาวด์)" and not r_us_machines:
-            st.error("กรุณาเลือกเครื่อง US อย่างน้อย 1 เครื่อง")
         else:
             bid = str(uuid.uuid4())[:8].upper()
             img_path = ""
@@ -1161,8 +1131,7 @@ elif st.session_state.page == "จองห้อง":
                 img_path = paths_to_str(paths)
             new_bk = {
                 "id": bid, "name": r_name.strip(), "phone_id": r_phone.strip(),
-                "user_status": r_status,
-                "purpose": (r_purpose + (f" | เครื่อง US: {', '.join(r_us_machines)}" if r_us_machines else "")).strip(" |"),
+                "user_status": r_status, "purpose": r_purpose,
                 "item": r_room, "item_type": "ห้องปฏิบัติการ", "quantity": r_quantity,
                 "date": r_date_str, "start_date": r_date_str, "end_date": r_date_str,
                 "slot": r_slot,
