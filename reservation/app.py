@@ -462,7 +462,7 @@ def upload_to_drive(file, filename, folder="rtcmu_booking"):
     try:
         service = get_drive_service()
         if not service:
-            st.warning("⚠️ เชื่อมต่อ Google Drive ไม่ได้")
+            st.warning("⚠️ เชื่อมต่อ Google Drive ไม่ได้ (ตรวจสอบ st.secrets['gcp'])")
             return ""
 
         file_stream = add_watermark(file)
@@ -472,18 +472,27 @@ def upload_to_drive(file, filename, folder="rtcmu_booking"):
             "parents": [DRIVE_FOLDER_ID],
         }
         uploaded = service.files().create(
-            body=file_metadata, media_body=media, fields="id"
+            body=file_metadata,
+            media_body=media,
+            fields="id",
+            supportsAllDrives=True,          # <-- เพิ่ม: จำเป็นถ้าโฟลเดอร์อยู่ใน Shared Drive
         ).execute()
         file_id = uploaded.get("id")
 
         service.permissions().create(
             fileId=file_id,
             body={"role": "reader", "type": "anyone"},
+            supportsAllDrives=True,          # <-- เพิ่ม
         ).execute()
 
         return f"https://lh3.googleusercontent.com/d/{file_id}"
+
     except Exception as e:
+        import traceback
+        err_detail = traceback.format_exc()
         st.warning(f"⚠️ อัปโหลดรูป '{getattr(file, 'name', filename)}' ไม่สำเร็จ: {e}")
+        with st.expander("รายละเอียด error (สำหรับดีบัก)"):
+            st.code(err_detail)
         return ""
 
 def save_images_multi(bid, files, prefix):
