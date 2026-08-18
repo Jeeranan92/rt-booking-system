@@ -1247,12 +1247,12 @@ elif st.session_state.page == "ยกเลิกห้อง":
                 if not b.get("borrow_image"):
                     st.markdown("**📷 เพิ่มรูปก่อนเข้าใช้ห้อง (ภายหลัง)**")
                     add_rborrow_imgs = st.file_uploader("อัปโหลดรูปก่อนเข้าใช้ห้อง",
-                        type=["jpg","jpeg","png","heic","webp"], key=f"add_rborrow_{b['id']}", accept_multiple_files=True)
+                        type=["jpg","jpeg","png","heic","webp"], key=f"add_rborrow_{i}_{b['id']}", accept_multiple_files=True)
                     if add_rborrow_imgs:
                         cols_arb = st.columns(min(len(add_rborrow_imgs), 4))
-                        for i, f in enumerate(add_rborrow_imgs):
-                            with cols_arb[i % 4]: st.image(f, caption=f"รูป {i+1}", width=130)
-                        if st.button("💾 บันทึกรูปก่อนใช้ห้อง", key=f"save_rborrow_{b['id']}"):
+                        for j, f in enumerate(add_rborrow_imgs):
+                            with cols_arb[j % 4]: st.image(f, caption=f"รูป {j+1}", width=130)
+                        if st.button("💾 บันทึกรูปก่อนใช้ห้อง", key=f"save_rborrow_{i}_{b['id']}"):
                             new_paths = save_images_multi(b["id"], add_rborrow_imgs, "room_borrow_add")
                             for bk in bookings:
                                 if bk["id"] == b["id"]:
@@ -1264,16 +1264,16 @@ elif st.session_state.page == "ยกเลิกห้อง":
 
                 st.markdown("**📷 รูปภาพสภาพห้องหลังใช้งาน**")
                 ret_imgs_r = st.file_uploader("อัปโหลดรูปภาพสภาพห้องหลังใช้",
-                    type=["jpg","jpeg","png","heic","webp"], key=f"upload_rret_{b['id']}", accept_multiple_files=True)
+                    type=["jpg","jpeg","png","heic","webp"], key=f"upload_rret_{i}_{b['id']}", accept_multiple_files=True)
                 if ret_imgs_r:
                     cols_rr = st.columns(min(len(ret_imgs_r), 4))
-                    for i, f in enumerate(ret_imgs_r):
-                        with cols_rr[i % 4]: st.image(f, caption=f"รูป {i+1}", width=130)
+                    for j, f in enumerate(ret_imgs_r):
+                        with cols_rr[j % 4]: st.image(f, caption=f"รูป {j+1}", width=130)
 
-                ret_notes = st.text_input("หมายเหตุ / สภาพห้อง", placeholder="เช่น ห้องสะอาด อุปกรณ์ครบ", key=f"rnote_{b['id']}")
+                ret_notes = st.text_input("หมายเหตุ / สภาพห้อง", placeholder="เช่น ห้องสะอาด อุปกรณ์ครบ", key=f"rnote_{i}_{b['id']}")
                 col_r2, _ = st.columns([1, 3])
                 with col_r2:
-                    if st.button("✅ ยืนยันการยกเลิกห้อง", key=f"rret_{b['id']}", type="primary", use_container_width=True):
+                    if st.button("✅ ยืนยันการยกเลิกห้อง", key=f"rret_{i}_{b['id']}", type="primary", use_container_width=True):
                         img_path = ""
                         if ret_imgs_r:
                             paths = save_images_multi(b["id"], ret_imgs_r, "room_return")
