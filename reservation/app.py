@@ -445,13 +445,17 @@ def upload_to_drive(file, filename, folder="rtcmu_booking"):
         api_key    = st.secrets["cloudinary"]["api_key"],
         api_secret = st.secrets["cloudinary"]["api_secret"]
     )
-    file_stream = add_watermark(file)
-    result = cloudinary.uploader.upload(
-        file_stream, folder=folder,
-        public_id=filename.replace(".", "_"),
-        overwrite=True, resource_type="image"
-    )
-    return result.get("secure_url", "")
+    try:
+        file_stream = add_watermark(file)
+        result = cloudinary.uploader.upload(
+            file_stream, folder=folder,
+            public_id=filename.replace(".", "_"),
+            overwrite=True, resource_type="image"
+        )
+        return result.get("secure_url", "")
+    except Exception as e:
+        st.warning(f"⚠️ อัปโหลดรูป '{getattr(file, 'name', filename)}' ไม่สำเร็จ: {e}")
+        return ""
 
 def save_images_multi(bid, files, prefix):
     urls = []
