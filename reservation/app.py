@@ -1200,7 +1200,7 @@ elif st.session_state.page == "ยกเลิกห้อง":
         for h, txt in zip(hc2, ["รหัส", "ผู้จอง", "ห้อง", "วันที่", "เวลา", ""]):
             h.markdown(f"**{txt}**")
 
-        for b in rf:
+        for i, b in enumerate(rf):
             start, end = get_date_range(b)
             date_show = start if start == end else f"{start} → {end}"
             r1, r2, r3, r4, r5, r6 = st.columns([1.1, 1.4, 2.3, 1.3, 1.1, 0.9])
@@ -1209,7 +1209,7 @@ elif st.session_state.page == "ยกเลิกห้อง":
             r3.write(b["item"])
             r4.write(date_show)
             r5.write(b.get("slot", "-"))
-            if r6.button("ยกเลิก", key=f"quick_cancel_room_{b['id']}", use_container_width=True, type="primary"):
+            if r6.button("ยกเลิก", key=f"quick_cancel_room_{i}_{b['id']}", use_container_width=True, type="primary"):
                 st.session_state.quick_action_booking = b
                 st.rerun()
 
