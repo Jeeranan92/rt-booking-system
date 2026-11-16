@@ -627,7 +627,7 @@ ORAL_ADVISORS   = ["ผศ.ดร.ชญานิษฐ์", "รศ.ดร.ศ�
 ORAL_DAY_START  = "08:40"
 ORAL_DAY_END    = "16:20"
 ORAL_SLOT_MIN   = 20
-ORAL_SHEET_NAME = "oral_exam"           # worksheet แยก ในไฟล์ Google Sheets เดิม
+ORAL_SHEET_NAME = "oral_exam 515113"           # worksheet แยก ในไฟล์ Google Sheets เดิม
 ORAL_FILE       = "oral_bookings.json"  # สำรองเมื่อไม่ได้เชื่อม Google Sheets
 ORAL_COLUMNS    = ["id", "advisor", "date", "slot", "kind", "name", "phone_id",
                    "user_status", "purpose", "status", "created_at"]
@@ -648,7 +648,7 @@ ORAL_SLOTS = _build_oral_slots()
 
 @st.cache_resource(show_spinner=False)
 def get_oral_sheet():
-    """คืน worksheet 'oral_exam' ในไฟล์ Sheets เดิม (สร้างให้อัตโนมัติถ้ายังไม่มี)"""
+    """คืน worksheet 'oral_exam (515113)' ในไฟล์ Sheets เดิม (สร้างให้อัตโนมัติถ้ายังไม่มี)"""
     if not GSHEETS_AVAILABLE:
         return None
     try:
@@ -755,7 +755,7 @@ def make_oral_row(advisor, ds, slot, kind, name="", phone="", ustatus="", purpos
             "user_status": ustatus, "purpose": purpose, "status": ORAL_ACTIVE,
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
-@st.dialog("🎓 จองอาจารย์สอบ Oral")
+@st.dialog("🎓 จองอาจารย์สอบ Oral (515113)")
 def show_oral_day_dialog():
     adv = st.session_state.get("oe_advisor")
     ds  = st.session_state.get("oe_selected_date")
@@ -1063,9 +1063,9 @@ if st.session_state.page == "หน้าแรก":
 
     if st.session_state.campus == CAMPUSES[0]:
         st.markdown("""<div style='background:linear-gradient(135deg,#6a1b9a,#8e24aa);border-radius:16px;padding:1.2rem 1.5rem;color:white;margin-bottom:.5rem;box-shadow:0 4px 18px rgba(106,27,154,.3)'>
-            <div style='font-size:1.8rem'>🎓</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>จองอาจารย์สอบ Oral Exam</div>
+            <div style='font-size:1.8rem'>🎓</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>จองอาจารย์สอบ Oral (515113) Exam</div>
             <div style='font-size:.82rem;opacity:.85'>เลือกอาจารย์ผู้สอบ แล้วจองคิวครั้งละ 20 นาที</div></div>""", unsafe_allow_html=True)
-        if st.button("🎓  เข้าหน้าจองอาจารย์สอบ Oral", use_container_width=True, key="home_oral"):
+        if st.button("🎓  เข้าหน้าจองอาจารย์สอบ Oral (515113)", use_container_width=True, key="home_oral"):
             st.session_state.page = "จองอาจารย์"; st.rerun()
 
     st.divider()
@@ -1594,7 +1594,7 @@ elif st.session_state.page == "ยกเลิกห้อง":
 # PAGE ▸ จองอาจารย์สอบ Oral
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "จองอาจารย์":
-    st.markdown('<div class="sec-title">🎓 จองอาจารย์สอบ Oral Exam</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title">🎓 จองอาจารย์สอบ Oral Exam (515113)</div>', unsafe_allow_html=True)
     if st.session_state.get("oe_flash"):
         st.success(st.session_state.pop("oe_flash"))
     st.markdown(
