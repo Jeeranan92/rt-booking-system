@@ -786,7 +786,32 @@ def show_oral_day_dialog():
 
     free = [s for s in ORAL_SLOTS
             if s not in booked and s not in blocked and not oral_slot_passed(d_obj, s)]
-    mode = st.radio("ต้องการทำรายการ", ["📝 ต้องการจอง", "🚫 ไม่ว่าง"],
+
+    # ปุ่มระดับวัน: ตั้งไม่ว่างทั้งวัน / ยกเลิกการตั้งไม่ว่างทั้งหมดของวันนี้ (ใช้ได้ทุกโหมด)
+    if blocked:
+        st.markdown(f"**🚫 ช่วงที่ตั้งเป็นไม่ว่างอยู่:** {', '.join(sorted(blocked))}")
+    dc1, dc2 = st.columns(2)
+    with dc1:
+        if free and st.button(f"🚫 ไม่ว่างทั้งวัน ({len(free)} ช่วงที่ยังว่าง)",
+                              use_container_width=True, key=f"oe_allday_btn_{ds}"):
+            if add_oral_rows([make_oral_row(adv, ds, s, ORAL_BLOCK) for s in free]):
+                st.session_state.oe_flash = (
+                    f"🚫 ตั้งไม่ว่างทั้งวันกับ {adv} วันที่ {d_obj.strftime('%d/%m/%Y')} "
+                    f"แล้ว {len(free)} ช่วง")
+                st.session_state.pop("oe_selected_date", None)
+                st.rerun()
+    with dc2:
+        if blocked and st.button(f"♻️ ยกเลิกการตั้งไม่ว่างของวันนี้ ({len(blocked)} ช่วง)",
+                                 use_container_width=True, key=f"oe_unblock_{ds}"):
+            ids = [r["id"] for r in rows
+                   if r.get("advisor") == adv and str(r.get("date")) == ds
+                   and r.get("kind") == ORAL_BLOCK and r.get("status") != ORAL_CANCELLED]
+            if cancel_oral_rows(ids):
+                st.session_state.oe_flash = "♻️ ยกเลิกการตั้งไม่ว่างของวันนี้แล้ว"
+                st.session_state.pop("oe_selected_date", None)
+                st.rerun()
+
+    mode = st.radio("ต้องการทำรายการ", ["📝 ต้องการจอง", "🚫 ไม่ว่าง (บางช่วง)"],
                     horizontal=True, key="oe_mode")
 
     if mode == "📝 ต้องการจอง":
@@ -824,31 +849,16 @@ def show_oral_day_dialog():
         if not free:
             st.info("ไม่มีช่วงเวลาที่ตั้งเป็นไม่ว่างเพิ่มได้ในวันนี้")
         else:
-            all_day = st.checkbox("🚫 ไม่ว่างทั้งวัน (ทุกช่วงที่ยังว่าง)", key=f"oe_allday_{ds}")
-            if all_day:
-                targets = free
-            else:
-                targets = st.multiselect("เลือกช่วงเวลาที่ไม่ว่าง (เลือกได้หลายช่วง)", free,
-                                         key=f"oe_block_{ds}")
-            if st.button("💾 บันทึกว่าไม่ว่าง", type="primary", use_container_width=True,
-                         key=f"oe_block_save_{ds}"):
+            targets = st.multiselect("เลือกช่วงเวลาที่ไม่ว่าง (เลือกได้หลายช่วง)", free,
+                                     key=f"oe_block_{ds}")
+            if st.button("💾 บันทึกว่าไม่ว่างเฉพาะช่วงที่เลือก", type="primary",
+                         use_container_width=True, key=f"oe_block_save_{ds}"):
                 if not targets:
                     st.warning("กรุณาเลือกช่วงเวลาอย่างน้อย 1 ช่วง")
                 elif add_oral_rows([make_oral_row(adv, ds, s, ORAL_BLOCK) for s in targets]):
                     st.session_state.oe_flash = (
                         f"🚫 ตั้งเป็นไม่ว่างกับ {adv} วันที่ {d_obj.strftime('%d/%m/%Y')} "
                         f"แล้ว {len(targets)} ช่วง")
-                    st.session_state.pop("oe_selected_date", None)
-                    st.rerun()
-        if blocked:
-            st.markdown(f"**ช่วงที่ตั้งเป็นไม่ว่างอยู่:** {', '.join(sorted(blocked))}")
-            if st.button(f"♻️ ยกเลิกการตั้งไม่ว่างของวันนี้ ({len(blocked)} ช่วง)",
-                         use_container_width=True, key=f"oe_unblock_{ds}"):
-                ids = [r["id"] for r in rows
-                       if r.get("advisor") == adv and str(r.get("date")) == ds
-                       and r.get("kind") == ORAL_BLOCK and r.get("status") != ORAL_CANCELLED]
-                if cancel_oral_rows(ids):
-                    st.session_state.oe_flash = "♻️ ยกเลิกการตั้งไม่ว่างของวันนี้แล้ว"
                     st.session_state.pop("oe_selected_date", None)
                     st.rerun()
 
