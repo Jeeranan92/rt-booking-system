@@ -177,6 +177,11 @@ html, body, [class*="css"] { font-family: 'Sarabun', sans-serif; }
     font-weight: 600;
     color: #ef6c00;
 }
+/* ปฏิทินจองอาจารย์สอบ Oral */
+.oe-free + div .stButton > button { background:#e8f5e9 !important; border-color:#a5d6a7 !important; }
+.oe-part + div .stButton > button { background:#fff8e1 !important; border-color:#ffe082 !important; }
+.oe-full + div .stButton > button { background:#fde8e8 !important; border-color:#ef9a9a !important; color:#c62828 !important; }
+.oe-off + div .stButton > button  { background:#eceff1 !important; border-color:#cfd8dc !important; color:#90a4ae !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -617,6 +622,241 @@ def show_quick_action_dialog():
         if st.button("ปิด", use_container_width=True, key="quick_cancel_btn"):
             st.session_state.pop("quick_action_booking", None)
             st.rerun()
+# ─── จองอาจารย์สอบ Oral ───────────────────────────────────────────────────────
+ORAL_ADVISORS   = ["ผศ.ดร.ชญานิษฐ์", "รศ.ดร.ศิริประภา", "อ.ดร.วรวัฒน์"]
+ORAL_DAY_START  = "08:40"
+ORAL_DAY_END    = "16:20"
+ORAL_SLOT_MIN   = 20
+ORAL_SHEET_NAME = "oral_exam"           # worksheet แยก ในไฟล์ Google Sheets เดิม
+ORAL_FILE       = "oral_bookings.json"  # สำรองเมื่อไม่ได้เชื่อม Google Sheets
+ORAL_COLUMNS    = ["id", "advisor", "date", "slot", "kind", "name", "phone_id",
+                   "user_status", "purpose", "status", "created_at"]
+ORAL_BOOK       = "จอง"
+ORAL_BLOCK      = "ไม่ว่าง"
+ORAL_ACTIVE     = "ใช้งาน"
+ORAL_CANCELLED  = "ยกเลิก"
+
+def _build_oral_slots():
+    out, t, end = [], parse_time(ORAL_DAY_START), parse_time(ORAL_DAY_END)
+    while t + ORAL_SLOT_MIN <= end:
+        n = t + ORAL_SLOT_MIN
+        out.append(f"{t//60:02d}:{t%60:02d}–{n//60:02d}:{n%60:02d}")
+        t = n
+    return out
+
+ORAL_SLOTS = _build_oral_slots()
+
+@st.cache_resource(show_spinner=False)
+def get_oral_sheet():
+    """คืน worksheet 'oral_exam' ในไฟล์ Sheets เดิม (สร้างให้อัตโนมัติถ้ายังไม่มี)"""
+    if not GSHEETS_AVAILABLE:
+        return None
+    try:
+        scopes = ["https://www.googleapis.com/auth/spreadsheets",
+                  "https://www.googleapis.com/auth/drive"]
+        creds_dict = dict(st.secrets["gcp"])
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        sh = gspread.authorize(creds).open_by_key(SHEET_ID)
+        try:
+            ws = sh.worksheet(ORAL_SHEET_NAME)
+        except gspread.exceptions.WorksheetNotFound:
+            ws = sh.add_worksheet(title=ORAL_SHEET_NAME, rows=1000, cols=len(ORAL_COLUMNS))
+            ws.insert_row(ORAL_COLUMNS, 1)
+        return ws
+    except Exception as e:
+        st.warning(f"Google Sheets (oral): {e}")
+        return None
+
+def _oral_json_load():
+    if os.path.exists(ORAL_FILE):
+        with open(ORAL_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def _oral_json_save(data):
+    with open(ORAL_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def load_oral():
+    ws = get_oral_sheet()
+    if ws is not None:
+        try:
+            return ws.get_all_records()
+        except Exception as e:
+            st.warning(f"โหลดตารางอาจารย์จาก Sheets ไม่ได้: {e}")
+    return _oral_json_load()
+
+def add_oral_rows(rows):
+    """บันทึกแถวใหม่ คืน True เมื่อสำเร็จ"""
+    ws = get_oral_sheet()
+    if ws is not None:
+        try:
+            ws.append_rows([[str(r.get(c, "") or "") for c in ORAL_COLUMNS] for r in rows],
+                           value_input_option="RAW")
+            return True
+        except Exception as e:
+            st.error(f"บันทึกลง Sheets ไม่สำเร็จ: {e}")
+            return False
+    data = _oral_json_load()
+    data.extend(rows)
+    _oral_json_save(data)
+    return True
+
+def cancel_oral_rows(ids):
+    """เปลี่ยนสถานะแถวเป็น 'ยกเลิก' (ไม่ลบแถวออก เพื่อเก็บประวัติ)"""
+    if not ids:
+        return True
+    ws = get_oral_sheet()
+    if ws is not None:
+        try:
+            all_ids = ws.col_values(1)
+            col = ORAL_COLUMNS.index("status") + 1
+            for rid in ids:
+                if rid in all_ids:
+                    ws.update_cell(all_ids.index(rid) + 1, col, ORAL_CANCELLED)
+            return True
+        except Exception as e:
+            st.error(f"ยกเลิกใน Sheets ไม่สำเร็จ: {e}")
+            return False
+    data = _oral_json_load()
+    for r in data:
+        if r.get("id") in ids:
+            r["status"] = ORAL_CANCELLED
+    _oral_json_save(data)
+    return True
+
+def oral_day_state(rows, advisor, ds):
+    """คืน (booked, blocked): booked = {ช่วงเวลา: แถวที่จอง}, blocked = set ของช่วงที่ตั้งไม่ว่าง"""
+    booked, blocked = {}, set()
+    for r in rows:
+        if r.get("advisor") != advisor or str(r.get("date")) != ds:
+            continue
+        if r.get("status") == ORAL_CANCELLED:
+            continue
+        if r.get("kind") == ORAL_BOOK:
+            booked[str(r.get("slot"))] = r
+        elif r.get("kind") == ORAL_BLOCK:
+            blocked.add(str(r.get("slot")))
+    return booked, blocked
+
+def oral_slot_passed(d_obj, slot):
+    today = date.today()
+    if d_obj < today:
+        return True
+    if d_obj > today:
+        return False
+    now = datetime.now()
+    return parse_time(slot.split("–")[0]) <= now.hour * 60 + now.minute
+
+def make_oral_row(advisor, ds, slot, kind, name="", phone="", ustatus="", purpose=""):
+    return {"id": str(uuid.uuid4())[:8].upper(), "advisor": advisor, "date": ds,
+            "slot": slot, "kind": kind, "name": name, "phone_id": phone,
+            "user_status": ustatus, "purpose": purpose, "status": ORAL_ACTIVE,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+@st.dialog("🎓 จองอาจารย์สอบ Oral")
+def show_oral_day_dialog():
+    adv = st.session_state.get("oe_advisor")
+    ds  = st.session_state.get("oe_selected_date")
+    if not adv or not ds:
+        return
+    d_obj = datetime.strptime(ds, "%Y-%m-%d").date()
+    st.markdown(f"**🎓 {adv}**  |  📅 {d_obj.strftime('%d/%m/%Y')}")
+
+    rows = load_oral()
+    booked, blocked = oral_day_state(rows, adv, ds)
+
+    cells = ""
+    for s in ORAL_SLOTS:
+        if s in booked:
+            cls, txt = "hour-taken", "❌ จองแล้ว"
+        elif s in blocked:
+            cls, txt = "hour-taken", "🚫 ไม่ว่าง"
+        elif oral_slot_passed(d_obj, s):
+            cls, txt = "hour-box", "⌛ เลยเวลา"
+        else:
+            cls, txt = "hour-free", "✅ ว่าง"
+        cells += f"<div class='hour-box {cls}'>{s.replace('–', '<br>')}<br>{txt}</div>"
+    st.markdown(
+        f"<div style='display:grid;grid-template-columns:repeat(4,1fr);gap:6px'>{cells}</div>",
+        unsafe_allow_html=True)
+    st.caption("ผู้จองคนอื่นจะเห็นเฉพาะสถานะ ไม่เห็นชื่อผู้จอง")
+    st.divider()
+
+    free = [s for s in ORAL_SLOTS
+            if s not in booked and s not in blocked and not oral_slot_passed(d_obj, s)]
+    mode = st.radio("ต้องการทำรายการ", ["📝 ต้องการจอง", "🚫 ไม่ว่าง"],
+                    horizontal=True, key="oe_mode")
+
+    if mode == "📝 ต้องการจอง":
+        if not free:
+            st.info("ไม่มีช่วงเวลาว่างในวันนี้")
+        else:
+            slot = st.selectbox("⏰ เลือกช่วงเวลา (ครั้งละ 20 นาที) *", free,
+                                key=f"oe_slot_{ds}")
+            c1, c2 = st.columns(2)
+            with c1:
+                o_name = st.text_input("ชื่อ-สกุล *", key=f"oe_name_{ds}")
+            with c2:
+                o_phone = st.text_input("เบอร์โทรบุคลากร / รหัสนักศึกษา *", key=f"oe_phone_{ds}")
+            o_status  = st.selectbox("สถานะ *", STATUS_OPTIONS, key=f"oe_status_{ds}")
+            o_purpose = st.text_input("หัวข้อ / วัตถุประสงค์", key=f"oe_purpose_{ds}")
+            if st.button("✅ ยืนยันการจอง", type="primary", use_container_width=True,
+                         key=f"oe_confirm_{ds}"):
+                if not o_name.strip() or not o_phone.strip():
+                    st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษา")
+                else:
+                    # ตรวจซ้ำกับข้อมูลล่าสุดก่อนบันทึก เพื่อกันการจองซ้ำ
+                    now_b, now_bl = oral_day_state(load_oral(), adv, ds)
+                    if slot in now_b or slot in now_bl:
+                        st.error("ช่วงเวลานี้มีผู้จองหรือถูกตั้งเป็นไม่ว่างแล้ว กรุณาเลือกเวลาอื่น")
+                    else:
+                        row = make_oral_row(adv, ds, slot, ORAL_BOOK, o_name.strip(),
+                                            o_phone.strip(), o_status, o_purpose.strip())
+                        if add_oral_rows([row]):
+                            st.session_state.oe_flash = (
+                                f"✅ จองคิวกับ {adv} วันที่ {d_obj.strftime('%d/%m/%Y')} "
+                                f"เวลา {slot} สำเร็จ (รหัส {row['id']}) กรุณาบันทึกรหัสนี้ไว้")
+                            st.session_state.pop("oe_selected_date", None)
+                            st.rerun()
+    else:
+        if not free:
+            st.info("ไม่มีช่วงเวลาที่ตั้งเป็นไม่ว่างเพิ่มได้ในวันนี้")
+        else:
+            all_day = st.checkbox("🚫 ไม่ว่างทั้งวัน (ทุกช่วงที่ยังว่าง)", key=f"oe_allday_{ds}")
+            if all_day:
+                targets = free
+            else:
+                targets = st.multiselect("เลือกช่วงเวลาที่ไม่ว่าง (เลือกได้หลายช่วง)", free,
+                                         key=f"oe_block_{ds}")
+            if st.button("💾 บันทึกว่าไม่ว่าง", type="primary", use_container_width=True,
+                         key=f"oe_block_save_{ds}"):
+                if not targets:
+                    st.warning("กรุณาเลือกช่วงเวลาอย่างน้อย 1 ช่วง")
+                elif add_oral_rows([make_oral_row(adv, ds, s, ORAL_BLOCK) for s in targets]):
+                    st.session_state.oe_flash = (
+                        f"🚫 ตั้งเป็นไม่ว่างกับ {adv} วันที่ {d_obj.strftime('%d/%m/%Y')} "
+                        f"แล้ว {len(targets)} ช่วง")
+                    st.session_state.pop("oe_selected_date", None)
+                    st.rerun()
+        if blocked:
+            st.markdown(f"**ช่วงที่ตั้งเป็นไม่ว่างอยู่:** {', '.join(sorted(blocked))}")
+            if st.button(f"♻️ ยกเลิกการตั้งไม่ว่างของวันนี้ ({len(blocked)} ช่วง)",
+                         use_container_width=True, key=f"oe_unblock_{ds}"):
+                ids = [r["id"] for r in rows
+                       if r.get("advisor") == adv and str(r.get("date")) == ds
+                       and r.get("kind") == ORAL_BLOCK and r.get("status") != ORAL_CANCELLED]
+                if cancel_oral_rows(ids):
+                    st.session_state.oe_flash = "♻️ ยกเลิกการตั้งไม่ว่างของวันนี้แล้ว"
+                    st.session_state.pop("oe_selected_date", None)
+                    st.rerun()
+
+    st.divider()
+    if st.button("ปิด", use_container_width=True, key=f"oe_close_{ds}"):
+        st.session_state.pop("oe_selected_date", None)
+        st.rerun()
+
 # ─── Session state ─────────────────────────────────────────────────────────────
 today = date.today()
 defaults = {
@@ -639,6 +879,8 @@ if st.session_state.get("cal_selected_date"):
     show_day_bookings()
 if st.session_state.get("quick_action_booking"):
     show_quick_action_dialog()
+if st.session_state.get("oe_selected_date") and st.session_state.page == "จองอาจารย์":
+    show_oral_day_dialog()
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     _logo_candidates = [
@@ -692,6 +934,12 @@ with st.sidebar:
     for label, key in [("📅  จองห้อง","จองห้อง"),("❌  ยกเลิกห้อง","ยกเลิกห้อง")]:
         if st.button(label, use_container_width=True, type="secondary", key=f"nav_{key}"):
             st.session_state.page = key; st.rerun()
+
+    if st.session_state.campus == CAMPUSES[0]:
+        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>🎓 การสอบ</div>", unsafe_allow_html=True)
+        if st.button("🎓  จองอาจารย์สอบ Oral", use_container_width=True, type="secondary", key="nav_จองอาจารย์"):
+            st.session_state.page = "จองอาจารย์"; st.rerun()
 
     st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
     st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>📊 ภาพรวม</div>", unsafe_allow_html=True)
@@ -802,6 +1050,13 @@ if st.session_state.page == "หน้าแรก":
             <div style='font-size:.82rem;color:#607d8b'>ตารางและสถิติการยืม-คืน</div></div>""", unsafe_allow_html=True)
         if st.button("📊  ดูสรุป", use_container_width=True, key="home_sum"):
             st.session_state.page = "สรุป"; st.rerun()
+
+    if st.session_state.campus == CAMPUSES[0]:
+        st.markdown("""<div style='background:linear-gradient(135deg,#6a1b9a,#8e24aa);border-radius:16px;padding:1.2rem 1.5rem;color:white;margin-bottom:.5rem;box-shadow:0 4px 18px rgba(106,27,154,.3)'>
+            <div style='font-size:1.8rem'>🎓</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>จองอาจารย์สอบ Oral Exam</div>
+            <div style='font-size:.82rem;opacity:.85'>เลือกอาจารย์ผู้สอบ แล้วจองคิวครั้งละ 20 นาที</div></div>""", unsafe_allow_html=True)
+        if st.button("🎓  เข้าหน้าจองอาจารย์สอบ Oral", use_container_width=True, key="home_oral"):
+            st.session_state.page = "จองอาจารย์"; st.rerun()
 
     st.divider()
     st.markdown("""<div style='background:#f0f7ff;border-radius:12px;padding:1rem 1.5rem;border:1px solid #bbdefb;font-size:.82rem;color:#1565c0'>
@@ -1324,6 +1579,110 @@ elif st.session_state.page == "ยกเลิกห้อง":
                                 bk["return_image"] = img_path; bk["notes"] = ret_notes
                         st.session_state.bookings = bookings
                         st.success(f"✅ ยกเลิกห้อง [{b['id']}] เรียบร้อย!"); st.rerun()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE ▸ จองอาจารย์สอบ Oral
+# ══════════════════════════════════════════════════════════════════════════════
+elif st.session_state.page == "จองอาจารย์":
+    st.markdown('<div class="sec-title">🎓 จองอาจารย์สอบ Oral Exam</div>', unsafe_allow_html=True)
+    if st.session_state.get("oe_flash"):
+        st.success(st.session_state.pop("oe_flash"))
+    st.markdown(
+        f"<div style='font-size:.85rem;color:#607d8b;margin-bottom:.6rem'>"
+        f"📅 จันทร์ – ศุกร์ • เวลา {ORAL_SLOTS[0].split('–')[0]}–{ORAL_SLOTS[-1].split('–')[1]} น. "
+        f"• จองได้ครั้งละ {ORAL_SLOT_MIN} นาที • จองซ้ำช่วงเวลาเดิมไม่ได้</div>",
+        unsafe_allow_html=True)
+
+    st.markdown("##### 👩‍🏫 เลือกอาจารย์ผู้สอบ")
+    adv_cols = st.columns(len(ORAL_ADVISORS))
+    for col, name in zip(adv_cols, ORAL_ADVISORS):
+        with col:
+            is_sel = st.session_state.get("oe_advisor") == name
+            if st.button(f"🎓  {name}", use_container_width=True, key=f"oe_adv_{name}",
+                         type="primary" if is_sel else "secondary"):
+                st.session_state.oe_advisor = name
+                st.rerun()
+
+    adv = st.session_state.get("oe_advisor")
+    if not adv:
+        st.info("👆 กรุณาเลือกอาจารย์ เพื่อดูปฏิทินการจอง")
+    else:
+        today_obj = date.today()
+        st.session_state.setdefault("oe_year", today_obj.year)
+        st.session_state.setdefault("oe_month", today_obj.month)
+        st.divider()
+        st.markdown(f"#### 🗓️ ปฏิทินของ {adv}")
+
+        nv1, nv2, nv3 = st.columns([1, 3, 1])
+        with nv1:
+            if st.button("◀ เดือนก่อน", use_container_width=True, key="oe_prev"):
+                if st.session_state.oe_month == 1:
+                    st.session_state.oe_month = 12
+                    st.session_state.oe_year -= 1
+                else:
+                    st.session_state.oe_month -= 1
+                st.rerun()
+        with nv2:
+            st.markdown(
+                f"<h3 style='text-align:center;font-family:Prompt;color:#0d2137;margin:4px 0'>"
+                f"{MONTH_TH[st.session_state.oe_month]} {st.session_state.oe_year + 543}</h3>",
+                unsafe_allow_html=True)
+        with nv3:
+            if st.button("เดือนถัดไป ▶", use_container_width=True, key="oe_next"):
+                if st.session_state.oe_month == 12:
+                    st.session_state.oe_month = 1
+                    st.session_state.oe_year += 1
+                else:
+                    st.session_state.oe_month += 1
+                st.rerun()
+
+        yr, mo = st.session_state.oe_year, st.session_state.oe_month
+        rows = load_oral()
+        hdr = st.columns(7)
+        for i, dl in enumerate(["จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์", "อาทิตย์"]):
+            color = "#c62828" if i >= 5 else "#546e7a"
+            hdr[i].markdown(
+                f"<div style='text-align:center;font-weight:700;font-size:.85rem;color:{color};"
+                f"background:#f0f4f8;border-radius:6px;padding:6px 0'>{dl}</div>",
+                unsafe_allow_html=True)
+        st.markdown("<div style='margin:4px 0'></div>", unsafe_allow_html=True)
+
+        total = len(ORAL_SLOTS)
+        for week in calendar.monthcalendar(yr, mo):
+            wcols = st.columns(7)
+            for ci, d in enumerate(week):
+                with wcols[ci]:
+                    if d == 0:
+                        st.markdown("<div style='height:64px'></div>", unsafe_allow_html=True)
+                        continue
+                    d_obj = date(yr, mo, d)
+                    ds = d_obj.strftime("%Y-%m-%d")
+                    if d_obj < today_obj or ci >= 5:   # ผ่านมาแล้ว หรือเสาร์-อาทิตย์
+                        st.markdown("<div class='cal-cell-marker oe-off'></div>", unsafe_allow_html=True)
+                        st.button(f"{d}\n\n{'ปิด' if ci >= 5 else '—'}", key=f"oe_day_{ds}",
+                                  use_container_width=True, disabled=True)
+                        continue
+                    booked, blocked = oral_day_state(rows, adv, ds)
+                    free_n = sum(1 for s in ORAL_SLOTS
+                                 if s not in booked and s not in blocked
+                                 and not oral_slot_passed(d_obj, s))
+                    if free_n == 0:
+                        cls, txt = ("oe-off", "ไม่ว่าง") if blocked else ("oe-full", "เต็ม")
+                    elif booked or blocked:
+                        cls, txt = "oe-part", f"ว่าง {free_n}/{total}"
+                    else:
+                        cls, txt = "oe-free", "ว่าง"
+                    st.markdown(f"<div class='cal-cell-marker {cls}'></div>", unsafe_allow_html=True)
+                    if st.button(f"{d}\n\n{txt}", key=f"oe_day_{ds}", use_container_width=True):
+                        st.session_state.oe_selected_date = ds
+                        st.rerun()
+
+        st.markdown(
+            "<div style='font-size:.72rem;color:#607d8b;margin-top:6px'>"
+            "🟩 ว่าง &nbsp;|&nbsp; 🟨 มีบางช่วงถูกจอง/ตั้งไม่ว่าง &nbsp;|&nbsp; 🟥 เต็ม &nbsp;|&nbsp; "
+            "⬜ ไม่ว่างทั้งวัน / ปิดทำการ / ผ่านมาแล้ว<br>"
+            "กดที่วันที่ เพื่อจองคิว หรือตั้งเป็นไม่ว่าง</div>",
+            unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ ปฏิทิน
