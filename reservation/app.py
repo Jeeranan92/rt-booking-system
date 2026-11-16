@@ -1063,7 +1063,7 @@ if st.session_state.page == "หน้าแรก":
 
     if st.session_state.campus == CAMPUSES[0]:
         st.markdown("""<div style='background:linear-gradient(135deg,#6a1b9a,#8e24aa);border-radius:16px;padding:1.2rem 1.5rem;color:white;margin-bottom:.5rem;box-shadow:0 4px 18px rgba(106,27,154,.3)'>
-            <div style='font-size:1.8rem'>🎓</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>จองอาจารย์สอบ Oral (515113) Exam</div>
+            <div style='font-size:1.8rem'>🎓</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>จองอาจารย์สอบ Oral Exam (515113)</div>
             <div style='font-size:.82rem;opacity:.85'>เลือกอาจารย์ผู้สอบ แล้วจองคิวครั้งละ 20 นาที</div></div>""", unsafe_allow_html=True)
         if st.button("🎓  เข้าหน้าจองอาจารย์สอบ Oral (515113)", use_container_width=True, key="home_oral"):
             st.session_state.page = "จองอาจารย์"; st.rerun()
