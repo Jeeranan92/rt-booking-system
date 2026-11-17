@@ -988,9 +988,12 @@ $("labCopy").addEventListener("click",()=>{let t="การทดลอง: ต�
  try{navigator.clipboard.writeText(t).then(done,()=>{$("labReport").focus();$("labMsg").textContent="คัดลอกอัตโนมัติไม่ได้ ให้คัดลอกจากตารางด้วยตนเอง";});}catch(e){$("labMsg").textContent="คัดลอกอัตโนมัติไม่ได้ ให้คัดลอกด้วยตนเอง";}});
 let clearArm=false;$("labClear").addEventListener("click",()=>{if(!clearArm){clearArm=true;$("labClear").textContent="กดอีกครั้งเพื่อยืนยัน";setTimeout(()=>{clearArm=false;$("labClear").textContent="ล้างบันทึก";},3000);return;}
  clearArm=false;LS={};lsSave();document.querySelectorAll(".lab input,#labReport").forEach(el=>el.value="");$("labClear").textContent="ล้างบันทึก";$("labMsg").textContent="ล้างบันทึกแล้ว";});
+/* ---------- in-page links: เลื่อนไปยังส่วนนั้นโดยไม่เปลี่ยน URL (กันไม่ให้ iframe โหลดแอปซ้อน) ---------- */
+document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a)return;const el=document.getElementById(a.getAttribute("href").slice(1));if(!el)return;e.preventDefault();el.scrollIntoView({behavior:"smooth",block:"start"});});
+
 /* ---------- nav highlight ---------- */
 const navLinks=[...document.querySelectorAll("#pills a")];
-try{const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){navLinks.forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+e.target.id));const on=navLinks.find(a=>a.classList.contains("on"));if(on)on.scrollIntoView({block:"nearest",inline:"center"});}});},{rootMargin:"-40% 0px -55% 0px"});
+try{const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){navLinks.forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+e.target.id));const on=navLinks.find(a=>a.classList.contains("on"));if(on){const pl=document.getElementById("pills");const d=on.getBoundingClientRect().left-pl.getBoundingClientRect().left-(pl.clientWidth-on.offsetWidth)/2;pl.scrollBy({left:d,behavior:"smooth"});}}});},{rootMargin:"-40% 0px -55% 0px"});
  document.querySelectorAll("section.step").forEach(s=>io.observe(s));}catch(e){}
 
 /* ---------- loop & init ---------- */
