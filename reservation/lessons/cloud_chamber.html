@@ -1,1008 +1,385 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>ห้องทดลองสร้างนิวเคลียส</title>
+<title>Cloud Chamber จำลอง</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: iOS grouped-inset settings style — sticky translucent nav with step pills, large titles, white rounded cards on system gray */
+/* Layout: lab-notebook page; instrument panel (cross-section + live top view), data bench, then a field guide to the tracks */
 :root{
-  --bg:#F2F2F7; --card:#FFFFFF; --canvas:#F5F5F8; --fill:rgba(118,118,128,.12); --fill2:rgba(118,118,128,.08);
-  --label:#000000; --label2:rgba(60,60,67,.62); --label3:rgba(60,60,67,.32); --sep:rgba(60,60,67,.18);
-  --bar:rgba(242,242,247,.82); --segsel:#FFFFFF;
-  --blue:#007AFF; --red:#FF3B30; --orange:#FF9500; --green:#34C759; --teal:#30B0C7; --purple:#AF52DE; --indigo:#5856D6; --pink:#FF2D55; --gray:#8E8E93;
-  --blue-t:rgba(0,122,255,.12);
-  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Sukhumvit Set","Noto Sans Thai","Helvetica Neue",system-ui,sans-serif;
-  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Sukhumvit Set","Noto Sans Thai","Helvetica Neue",system-ui,sans-serif;
-  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#16202a; --muted:#56636f; --line:#d5dce3;
+  --ice:#2f6fb0; --ice-soft:#dfeaf6; --alcohol:#a8661a; --alcohol-soft:#f6ead8;
+  --scene:#0f1418; --scene-ink:#9aa7b2;
+  --font-display:"Chakra Petch","IBM Plex Sans Thai",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#000000; --card:#1C1C1E; --canvas:#232326; --fill:rgba(118,118,128,.24); --fill2:rgba(118,118,128,.16);
-  --label:#FFFFFF; --label2:rgba(235,235,245,.62); --label3:rgba(235,235,245,.3); --sep:rgba(84,84,88,.6);
-  --bar:rgba(0,0,0,.72); --segsel:#636366;
-  --blue:#0A84FF; --red:#FF453A; --orange:#FF9F0A; --green:#30D158; --teal:#40C8E0; --purple:#BF5AF2; --indigo:#5E5CE6; --pink:#FF375F; --gray:#8E8E93;
-  --blue-t:rgba(10,132,255,.2); color-scheme:dark}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1216; --panel:#151c22; --ink:#e4eaef; --muted:#97a5b1; --line:#2a343d;
+  --ice:#7fb2e6; --ice-soft:#1a2b3c; --alcohol:#e0a75a; --alcohol-soft:#2e2414;
+  --scene:#090c0f; --scene-ink:#8796a3; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#000000; --card:#1C1C1E; --canvas:#232326; --fill:rgba(118,118,128,.24); --fill2:rgba(118,118,128,.16);
-  --label:#FFFFFF; --label2:rgba(235,235,245,.62); --label3:rgba(235,235,245,.3); --sep:rgba(84,84,88,.6);
-  --bar:rgba(0,0,0,.72); --segsel:#636366;
-  --blue:#0A84FF; --red:#FF453A; --orange:#FF9F0A; --green:#30D158; --teal:#40C8E0; --purple:#BF5AF2; --indigo:#5E5CE6; --pink:#FF375F; --gray:#8E8E93;
-  --blue-t:rgba(10,132,255,.2); color-scheme:dark}
-
+  --bg:#0d1216; --panel:#151c22; --ink:#e4eaef; --muted:#97a5b1; --line:#2a343d;
+  --ice:#7fb2e6; --ice-soft:#1a2b3c; --alcohol:#e0a75a; --alcohol-soft:#2e2414;
+  --scene:#090c0f; --scene-ink:#8796a3; color-scheme:dark}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:110px}
-body{background:var(--bg);color:var(--label);font-family:var(--font);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 56px}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bar)}
-.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:34px}
-h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
-h1{font-size:clamp(1.9rem,6vw,2.4rem);font-weight:700;line-height:1.15}
-h2{font-size:1.45rem;font-weight:700;line-height:1.2}
-h3{font-size:1.06rem;font-weight:600;line-height:1.3}
-p{margin:0}
-a{color:var(--blue);text-decoration:none}
-.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.foot{font-size:.82rem;color:var(--label2);line-height:1.45}
-.sub{color:var(--label2)}
-
-/* nav */
-.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px)));
-  padding:10px max(16px,env(safe-area-inset-left,0px)) 10px;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:.5px solid var(--sep)}
-.nav-in{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
-.nav-title{font-family:var(--display);font-weight:600;font-size:1rem;text-align:center}
-.pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
-.pills::-webkit-scrollbar{display:none}
-.pills a{flex:none;font-size:.86rem;padding:5px 12px;border-radius:999px;background:var(--fill);color:var(--label);white-space:nowrap}
-.pills a.on{background:var(--blue);color:#fff}
-header.hero{display:flex;flex-direction:column;gap:8px;padding-top:22px}
-.hero .eyebrow{font-size:.8rem;font-weight:600;color:var(--blue);letter-spacing:.02em}
-.hero p{color:var(--label2);max-width:62ch}
-
-/* sections & cards */
-section.step{display:flex;flex-direction:column;gap:12px}
-.sh{display:flex;flex-direction:column;gap:4px;padding-inline:4px}
-.sh .no{font-size:.8rem;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:.04em}
-.sh p{color:var(--label2);max-width:70ch}
-.card{background:var(--card);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
-.card.tight{gap:10px}
-.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
-.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-@media (max-width:860px){.cols,.cols3{grid-template-columns:minmax(0,1fr)}}
-.col{display:flex;flex-direction:column;gap:14px;min-width:0}
-.cap{font-size:.8rem;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:.04em;padding-inline:4px}
-
-/* list rows */
-.list{background:var(--fill2);border-radius:12px;display:flex;flex-direction:column}
-.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 14px;min-height:44px}
-.row+.row{border-top:.5px solid var(--sep)}
-.row .k{color:var(--label)}
-.row .v{color:var(--label2);text-align:right;font-variant-numeric:tabular-nums}
-.row .v.strong{color:var(--label);font-weight:600}
-
-/* controls */
-.btn{appearance:none;border:0;border-radius:12px;padding:0 18px;min-height:44px;font-family:var(--font);font-size:1rem;font-weight:600;background:var(--blue);color:#fff;cursor:pointer}
-.btn.tint{background:var(--blue-t);color:var(--blue)}
-.btn.gray{background:var(--fill);color:var(--label)}
-.btn:disabled{opacity:.4;cursor:not-allowed}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:32px}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;margin:0;text-wrap:balance;line-height:1.25}
+h1{font-size:clamp(28px,4.5vw,40px)}
+h2{font-size:22px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ice)}
+header{display:flex;flex-direction:column;gap:8px;max-width:70ch}
+header p{margin:0;color:var(--muted)}
+.grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2{font-size:18px}
+.sub{margin:-8px 0 0;color:var(--muted);font-size:14px}
+svg text{font-family:var(--font-body);font-size:12.5px;fill:var(--ink)}
+svg .lead{stroke:var(--muted);stroke-width:.6;stroke-dasharray:2 3}
+svg .dot{fill:var(--muted)}
+.drift{stroke-dasharray:4 4}
+@keyframes fall{to{stroke-dashoffset:-16}}
+@media (prefers-reduced-motion:no-preference){.drift{animation:fall 1.4s linear infinite}}
+.ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;font-size:14px}
+@media (max-width:480px){.ctl{grid-template-columns:minmax(0,1fr)}}
+.ctl label{display:flex;flex-direction:column;gap:4px;color:var(--muted)}
+.ctl .row{display:flex;align-items:center;gap:10px}
+.ctl input[type=range]{flex:1;min-width:0;accent-color:var(--ice)}
+.val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--ink);min-width:64px;text-align:right}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
 .btns{display:flex;flex-wrap:wrap;gap:8px}
-.seg{display:inline-flex;background:var(--fill);border-radius:9px;padding:2px;gap:2px;max-width:100%;overflow-x:auto;align-self:flex-start;scrollbar-width:none}
-.seg button{appearance:none;border:0;background:transparent;color:var(--label);font-family:var(--font);font-size:.88rem;font-weight:500;padding:6px 12px;border-radius:7px;cursor:pointer;white-space:nowrap;min-height:32px}
-.seg button[aria-pressed="true"]{background:var(--segsel);box-shadow:0 1px 3px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.04);font-weight:600}
-.seg.full{align-self:stretch;display:flex}.seg.full button{flex:1}
-.caps{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.caps::-webkit-scrollbar{display:none}
-.caps button{flex:none;appearance:none;border:0;background:var(--fill);color:var(--label);border-radius:999px;padding:6px 12px;font-family:var(--font);font-size:.88rem;cursor:pointer;min-height:32px}
-.caps button[aria-pressed="true"]{background:var(--blue);color:#fff}
-.slider{display:flex;flex-direction:column;gap:6px}
-.slider .top{display:flex;justify-content:space-between;gap:10px;font-size:.92rem}
-.slider .top .mono{color:var(--label2)}
-input[type=range]{width:100%;accent-color:var(--blue);height:28px}
-.stepper{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.stepper .lab{display:flex;flex-direction:column}
-.stepper .lab b{font-size:1.5rem;font-family:var(--display);font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
-.stepper .lab span{font-size:.85rem;color:var(--label2)}
-.ios-step{display:inline-flex;background:var(--fill);border-radius:9px;overflow:hidden}
-.ios-step button{appearance:none;border:0;background:transparent;color:var(--label);width:48px;height:34px;font-size:1.3rem;cursor:pointer}
-.ios-step button+button{border-left:.5px solid var(--sep)}
-.search{display:flex;gap:8px}
-.search input{flex:1;min-width:0;border:0;border-radius:10px;background:var(--fill);color:var(--label);padding:0 12px;min-height:40px;font-family:var(--font);font-size:1rem}
-input[type=text],input[type=number]{font-family:var(--mono)}
-button:focus-visible,input:focus-visible,a:focus-visible,canvas:focus-visible,summary:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
-
-/* nuclide header */
-.nuc{display:flex;align-items:center;gap:16px}
-.sym{font-family:var(--display);font-weight:700;font-size:3.4rem;line-height:1;position:relative;padding-left:2.3rem;min-width:6.5rem;letter-spacing:-.02em}
-.sym .sa,.sym .sz{position:absolute;left:0;font-weight:500;font-size:1rem;width:2.1rem;text-align:right;font-family:var(--mono);color:var(--label2)}
-.sym .sa{top:-.05rem}.sym .sz{bottom:-.05rem}
-.nuc-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
-.nuc-name{font-family:var(--display);font-size:1.2rem;font-weight:600}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:.82rem;font-weight:600;width:max-content;max-width:100%}
-.badge.on{background:rgba(52,199,89,.16);color:var(--green)}
-.badge.off{background:var(--fill);color:var(--label2)}
-
-canvas{display:block;width:100%;max-width:100%;border-radius:12px;background:var(--canvas);touch-action:pan-y}
-#nucCanvas{aspect-ratio:1/1;max-height:420px}
-#bloch{aspect-ratio:1/1;max-height:420px;touch-action:none;cursor:grab}
-#resCanvas{height:150px}#sigCanvas{height:140px}
-#freqCanvas{height:150px}
-#ensCanvas{height:230px}
-#t1Anim,#t2Anim{height:220px}
-#rdTimeline{height:74px}
-#gradCanvas{height:200px}#fidCanvas,#specCanvas{height:130px}
-#kCanvas,#imgCanvas{aspect-ratio:1/1;background:#000;border-radius:10px}
-#kCanvas{image-rendering:pixelated}
-#imgCanvas{cursor:crosshair}
-
-.callout{background:var(--blue-t);border-radius:12px;padding:12px 14px;font-size:.93rem;display:flex;flex-direction:column;gap:4px}
-.callout b{color:var(--blue)}
-.status{background:var(--fill2);border-radius:12px;padding:10px 14px;font-size:.92rem}
-
-/* pairing */
-.pairs{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
-.pair{display:inline-flex;gap:1px;padding:3px 5px;border-radius:8px;background:var(--fill)}
-.pair i{font-style:normal;font-size:.8rem;font-weight:700;line-height:1;width:12px;text-align:center}
-.pr .pair i{color:var(--red)}.nt .pair i{color:var(--gray)}
-.pair.lone{background:transparent;box-shadow:0 0 0 2px var(--blue)}
-.pair.lone i{color:var(--blue)!important}
-.more{font-size:.8rem;color:var(--label2)}
-.ladders{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.ladder{display:flex;flex-direction:column;gap:3px;background:var(--fill2);border-radius:12px;padding:10px;min-width:0}
-.lv{display:grid;grid-template-columns:54px minmax(0,1fr);gap:8px;align-items:center;font-family:var(--mono);font-size:.76rem}
-.dots{display:flex;flex-wrap:wrap;gap:3px}
-.dots b{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--label3);display:inline-block}
-.ladder.p .dots b.f{background:var(--red);border-color:var(--red)}
-.ladder.n .dots b.f{background:var(--gray);border-color:var(--gray)}
-.dots b.u{background:var(--blue)!important;border-color:var(--blue)!important}
-.magic{font-family:var(--mono);font-size:.68rem;color:var(--blue);display:flex;align-items:center;gap:6px}
-.magic::before,.magic::after{content:"";flex:1;border-top:1px dashed var(--blue);opacity:.5}
-details{background:var(--fill2);border-radius:12px;padding:0 14px}
-details summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--blue);list-style:none}
-details summary::-webkit-details-marker{display:none}
-details summary::after{content:"›";float:right;transform:rotate(90deg);transition:transform .2s}
-details[open] summary::after{transform:rotate(-90deg)}
-details>div{padding-bottom:14px;display:flex;flex-direction:column;gap:12px}
-.inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.inputs label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--label2)}
-.inputs input{border:0;border-radius:10px;background:var(--card);color:var(--label);padding:0 12px;min-height:40px;font-size:1rem;width:100%;min-width:0}
-@media (max-width:480px){.ladders{grid-template-columns:1fr}}
-
-.pop{display:flex;flex-direction:column;gap:8px}
-.poprow{display:grid;grid-template-columns:78px minmax(0,1fr) 92px;gap:8px;align-items:center;font-size:.86rem}
-.bar{height:10px;background:var(--fill);border-radius:5px;position:relative;overflow:hidden}
-.bar span{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--blue)}
-.poprow .c{text-align:right;font-family:var(--mono);font-size:.82rem;color:var(--label2)}
-svg text{font-family:var(--font);font-size:12px;fill:var(--label2)}
-
-/* tissue demo */
-.rdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-.rdcard{background:var(--fill2);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-shadow:0 0 0 0 transparent;transition:box-shadow .3s}
-.rdcard.flash{box-shadow:0 0 0 3px var(--blue)}
-.rdh b{font-family:var(--display);font-size:1rem;display:block}
-.rdh span{font-size:.78rem;color:var(--label2)}
-.rdcard canvas{background:var(--card)}
-.rd3d{aspect-ratio:1/1;max-height:210px}
-.rdsig{height:52px}
-.mbar{display:grid;grid-template-columns:36px minmax(0,1fr) 34px;gap:6px;align-items:center;font-size:.78rem}
-.mbar .v{font-family:var(--mono);text-align:right;color:var(--label2)}
-.rdpix{display:flex;align-items:center;gap:10px;font-size:.84rem}
-.rdpix .px{width:44px;height:44px;border-radius:10px;flex:none;background:#000;box-shadow:inset 0 0 0 .5px var(--sep)}
-.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.82rem;color:var(--label2)}
-.legend span{display:inline-flex;align-items:center;gap:6px}
-.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
-
-.imgpair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.imgpair figure{margin:0;display:flex;flex-direction:column;gap:4px;min-width:0}
-.imgpair figcaption{font-size:.78rem;color:var(--label2);text-align:center}
-ol.pipe{margin:0;padding-left:1.3rem;display:flex;flex-direction:column;gap:8px;font-size:.92rem}
-ol.pipe li::marker{color:var(--blue);font-weight:700}
-table{width:100%;border-collapse:collapse;font-size:.9rem}
-th,td{text-align:left;padding:10px 8px;border-bottom:.5px solid var(--sep);vertical-align:top}
-th{font-weight:600;color:var(--label2);font-size:.8rem}
-td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-tr.cur td{background:var(--blue-t)}
-.tbl{overflow-x:auto}
-#mriTable tbody tr{cursor:pointer}
-ol.tasks{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;counter-reset:t}
-ol.tasks li{counter-increment:t;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;padding:12px 0;border-top:.5px solid var(--sep);font-size:.95rem}
-ol.tasks li:first-child{border-top:0}
-ol.tasks li::before{content:counter(t);width:26px;height:26px;border-radius:50%;background:var(--blue-t);color:var(--blue);font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center}
-ol.tasks li small{display:block;color:var(--label2);font-size:.8rem;margin-top:2px}
-.credit{font-size:.9rem;color:var(--label2)}
-.credit b{color:var(--label);font-weight:600}
-.legendline{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.82rem;color:var(--label2)}
-.legendline span{display:inline-flex;align-items:center;gap:6px}
-.legendline i{display:inline-block;flex:none}
-.bridge{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:16px;align-items:start}
-@media (max-width:700px){.bridge{grid-template-columns:minmax(0,1fr)}}
-.chain{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:.92rem}
-.chain span{background:var(--fill);border-radius:10px;padding:8px 12px}
-.chain span.res{background:var(--blue-t);color:var(--blue);font-weight:600}
-.chain b{color:var(--label2);font-weight:500}
-.sw{display:inline-block;width:26px;height:26px;border-radius:7px;vertical-align:middle;box-shadow:inset 0 0 0 .5px var(--sep)}
-#miniImg{aspect-ratio:1/1;background:#000;border-radius:12px}
-.part{display:flex;flex-direction:column;gap:12px}
-.part-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
-.part-h .no{font-size:.8rem;font-weight:600;color:var(--blue)}
-.part-h a{font-size:.88rem}
-.lab td input,.lab textarea{width:100%;min-width:64px;border:0;border-radius:8px;background:var(--fill);color:var(--label);padding:6px 8px;min-height:34px;font-family:var(--font);font-size:.92rem}
-.lab td{padding:6px 6px}
-.lab td:first-child{white-space:nowrap;font-weight:500}
-.lab textarea{min-height:150px;line-height:1.5;resize:vertical;padding:10px 12px}
-.kw{display:flex;flex-wrap:wrap;gap:6px}
-.kw span{background:var(--fill);border-radius:999px;padding:3px 10px;font-size:.82rem}
-.foot-credit{text-align:center;font-size:.85rem;color:var(--label2);padding-top:6px;display:flex;flex-direction:column;gap:2px}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+button{font:inherit;font-size:14px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.go{background:var(--ice);border-color:var(--ice);color:var(--panel)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ice);outline-offset:2px}
+.scene{position:relative;background:var(--scene);border-radius:8px;overflow:hidden}
+#cv{display:block;width:100%;height:340px}
+.status{position:absolute;left:12px;top:10px;right:12px;font-family:var(--font-mono);font-size:12px;color:var(--scene-ink);display:flex;justify-content:space-between;gap:12px;pointer-events:none}
+.counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.count{border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.count span{font-size:12.5px;color:var(--muted)}
+.count b{font-family:var(--font-mono);font-weight:500;font-size:20px;font-variant-numeric:tabular-nums}
+.bnote{font-size:13px;color:var(--muted);margin:0}
+.bench{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media (max-width:860px){.bench{grid-template-columns:minmax(0,1fr)}}
+.timer{font-family:var(--font-mono);font-size:28px;font-variant-numeric:tabular-nums;line-height:1}
+.timer small{font-size:13px;color:var(--muted);margin-left:6px}
+#hist{display:block;width:100%;height:220px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:480px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{display:flex;flex-direction:column}
+.stat span{font-size:12px;color:var(--muted)}
+.stat b{font-family:var(--font-mono);font-weight:500;font-size:17px;font-variant-numeric:tabular-nums}
+.tablebox{overflow:auto;max-height:280px;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:440px}
+th,td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel);font-weight:500;color:var(--muted)}
+td.c,th.c{text-align:left}
+td{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+td.c{font-family:var(--font-body);color:var(--muted)}
+.empty{padding:16px;color:var(--muted);font-size:14px}
+.guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+.track{display:flex;flex-direction:column;gap:6px;padding-top:14px;border-top:2px solid var(--line)}
+.track h3{font-size:17px}
+.track p{margin:0;font-size:14.5px;color:var(--muted)}
+.swatch{height:30px;width:100%;background:var(--scene);border-radius:4px;display:block}
+.tries{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-width:76ch}
+.note{font-size:13px;color:var(--muted);margin:0;max-width:76ch}
 </style>
 
-<nav class="nav" aria-label="ขั้นตอน">
-  <div class="nav-in">
-    <div class="nav-title">ห้องทดลองสร้างนิวเคลียส</div>
-    <div class="pills" id="pills">
-      <a href="#s1">1 นิวเคลียส</a><a href="#s2">2 จับคู่และสปิน</a><a href="#s3">3 Larmor</a><a href="#s4">4 สั่นพ้อง</a><a href="#s5">5 T1 · T2</a><a href="#s6">6 สร้างภาพ</a><a href="#s7">7 ทำไม ¹H</a><a href="#tasks">การทดลอง</a>
+<div class="wrap">
+<header>
+  <span class="eyebrow">Diffusion cloud chamber · แบบจำลองสำหรับห้องเรียน</span>
+  <h1>Cloud Chamber จำลอง</h1>
+  <p>ประกอบชุดเครื่องมือในหัว แล้วลองปรับอุณหภูมิ ใส่สนามแม่เหล็ก และเปลี่ยนแหล่งกำเนิดรังสี จากนั้นเก็บข้อมูลการนับเพื่อดูธรรมชาติเชิงสุ่มของการสลายตัว</p>
+</header>
+
+<div class="grid">
+  <section class="panel" aria-labelledby="h-side">
+    <h2 id="h-side">ภาพตัดขวางชุดเครื่องมือ</h2>
+    <p class="sub">มองจากด้านข้าง ไอแอลกอฮอล์จากด้านบนแพร่ลงสู่ฐานที่เย็นจัด</p>
+    <svg viewBox="0 0 520 430" width="100%" role="img" aria-labelledby="svgt svgd">
+      <title id="svgt">ภาพตัดขวาง cloud chamber</title>
+      <desc id="svgd">กล่องใสคว่ำบนแผ่นอะลูมิเนียมดำ วางบนน้ำแข็งแห้งในกล่องโฟม มีผ้าชุบแอลกอฮอล์ด้านบนและไฟฉายส่องจากด้านข้าง</desc>
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#a8661a" stroke-width="1.5"/></marker>
+        <linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8a24a" stop-opacity=".12"/><stop offset="1" stop-color="#4a8fd6" stop-opacity=".26"/></linearGradient>
+      </defs>
+      <rect x="82" y="52" width="216" height="232" fill="url(#tg)"/>
+      <rect x="82" y="252" width="216" height="32" fill="#7fb2e6" opacity=".35"/>
+      <rect x="80" y="50" width="220" height="236" rx="4" fill="none" stroke="var(--muted)" stroke-width="1.6"/>
+      <rect x="84" y="54" width="212" height="16" rx="2" fill="#b8741f" opacity=".8"/>
+      <line class="drift" x1="125" y1="80" x2="125" y2="240" stroke="#a8661a" stroke-width="1" marker-end="url(#ar)"/>
+      <line class="drift" x1="190" y1="80" x2="190" y2="240" stroke="#a8661a" stroke-width="1" marker-end="url(#ar)"/>
+      <line class="drift" x1="255" y1="80" x2="255" y2="240" stroke="#a8661a" stroke-width="1" marker-end="url(#ar)"/>
+      <line x1="105" y1="272" x2="150" y2="266" stroke="#e9edf0" stroke-width="3" stroke-linecap="round"/>
+      <path d="M185 275 Q198 262 210 274 T238 268 T262 276" fill="none" stroke="#e9edf0" stroke-width="1"/>
+      <rect x="62" y="286" width="256" height="10" fill="#1e2226"/>
+      <rect x="74" y="296" width="232" height="24" rx="3" fill="#e6f1fb" stroke="#b5d4f4" stroke-width=".6"/>
+      <g fill="#f4f6f7" stroke="#b9c1c8" stroke-width=".5">
+        <rect x="88" y="300" width="30" height="16" rx="3"/><rect x="126" y="300" width="30" height="16" rx="3"/>
+        <rect x="164" y="300" width="30" height="16" rx="3"/><rect x="202" y="300" width="30" height="16" rx="3"/>
+        <rect x="240" y="300" width="30" height="16" rx="3"/><rect x="278" y="300" width="22" height="16" rx="3"/>
+      </g>
+      <path d="M54 290 L54 380 L326 380 L326 290" fill="none" stroke="var(--muted)" stroke-width="1.6"/>
+      <path d="M60 290 L60 374 L320 374 L320 290" fill="none" stroke="var(--muted)" stroke-width=".6" stroke-dasharray="2 3"/>
+      <rect x="10" y="258" width="30" height="18" rx="4" fill="#8a8f94"/>
+      <polygon points="40,258 50,254 50,280 40,276" fill="#5c6166"/>
+      <polygon points="54,256 82,252 82,284 54,278" fill="#f6c76a" opacity=".5"/>
+      <line class="lead" x1="296" y1="62" x2="336" y2="62"/><circle class="dot" cx="296" cy="62" r="2"/><text x="342" y="66">ผ้าสักหลาดชุบ IPA 99%</text>
+      <line class="lead" x1="300" y1="120" x2="336" y2="120"/><circle class="dot" cx="300" cy="120" r="2"/><text x="342" y="124">กล่องใส คว่ำ ปิดสนิท</text>
+      <line class="lead" x1="257" y1="180" x2="336" y2="180"/><circle class="dot" cx="257" cy="180" r="2"/><text x="342" y="184">ไอแอลกอฮอล์แพร่ลง</text>
+      <line class="lead" x1="298" y1="268" x2="336" y2="240"/><circle class="dot" cx="298" cy="268" r="2"/><text x="342" y="238">ชั้นไออิ่มตัวยิ่งยวด</text><text x="342" y="254">รอยอนุภาคเกิดที่นี่</text>
+      <line class="lead" x1="318" y1="291" x2="336" y2="292"/><circle class="dot" cx="318" cy="291" r="2"/><text x="342" y="296">แผ่นอะลูมิเนียมดำด้าน</text>
+      <line class="lead" x1="306" y1="310" x2="336" y2="326"/><circle class="dot" cx="306" cy="310" r="2"/><text x="342" y="330">น้ำแข็งแห้ง −78.5 °C</text>
+      <line class="lead" x1="326" y1="360" x2="336" y2="360"/><circle class="dot" cx="326" cy="360" r="2"/><text x="342" y="364">กล่องโฟม (ฉนวน)</text>
+      <line class="lead" x1="25" y1="276" x2="25" y2="398"/><circle class="dot" cx="25" cy="276" r="2"/><text x="16" y="414">ไฟฉาย LED ส่องด้านข้าง มุมต่ำ</text>
+    </svg>
+    <p class="bnote">ในชุดจริง สนามแม่เหล็กได้จากแม่เหล็กนีโอดิเมียมวางใต้แผ่นฐาน สนามใกล้ผิวแม่เหล็กอยู่ราว 0.1–0.5 เทสลา</p>
+  </section>
+
+  <section class="panel" aria-labelledby="h-top">
+    <h2 id="h-top">มุมมองจากด้านบน</h2>
+    <p class="sub">สิ่งที่นักศึกษาเห็นเมื่อมองลงไปที่แผ่นฐานในห้องมืด กรอบกว้างประมาณ 25 ซม.</p>
+    <div class="ctl">
+      <label for="temp">อุณหภูมิฐาน<span class="row"><input type="range" id="temp" min="-80" max="0" step="1" value="-78"><span class="val" id="tl">−78 °C</span></span></label>
+      <label for="bf">สนามแม่เหล็ก (พุ่งเข้าในจอ)<span class="row"><input type="range" id="bf" min="0" max="1" step="0.05" value="0"><span class="val" id="bl">0.00 T</span></span></label>
+      <label for="srcSel">แหล่งกำเนิดที่กลางแผ่น
+        <select id="srcSel">
+          <option value="none">ไม่มี (รังสีพื้นหลังเท่านั้น)</option>
+          <option value="am">Am-241 · ปล่อยแอลฟา</option>
+          <option value="sr">Sr-90 · ปล่อยบีตา</option>
+          <option value="cs">Cs-137 · ปล่อยแกมมา</option>
+        </select></label>
+    </div>
+    <div class="scene"><canvas id="cv" aria-label="ภาพจำลองรอยอนุภาคบนแผ่นฐาน"></canvas><div class="status"><span id="st"></span><span id="bst"></span></div></div>
+    <div class="btns">
+      <button type="button" id="pause">หยุดชั่วคราว</button>
+      <button type="button" id="reset">ล้างตัวนับ</button>
+    </div>
+    <div class="counts" aria-live="polite">
+      <div class="count"><span>แอลฟา</span><b id="ca">0</b></div>
+      <div class="count"><span>อิเล็กตรอน</span><b id="ce">0</b></div>
+      <div class="count"><span>มิวออน</span><b id="cm">0</b></div>
+    </div>
+    <p class="bnote">อิเล็กตรอนรวมทั้งบีตาและอิเล็กตรอนที่ถูกแกมมากระแทกออกมา เมื่อสนามแม่เหล็กพุ่งเข้าในจอ ประจุบวกเลี้ยวทวนเข็มนาฬิกา ประจุลบเลี้ยวตามเข็ม</p>
+  </section>
+</div>
+
+<section class="panel" aria-labelledby="h-data">
+  <h2 id="h-data">เก็บข้อมูลการนับ</h2>
+  <p class="sub">ตั้งเวลานับเอง แล้วนับรอยภายใต้การตั้งค่าปัจจุบัน ทำซ้ำหลายรอบด้วยเวลาเท่ากันแล้วดูการกระจายของผล</p>
+  <div class="bench">
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div style="display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap">
+        <label for="dur" style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)">เวลานับ
+          <input type="number" id="dur" min="5" max="600" step="5" value="60" style="width:84px;font:inherit;font-family:var(--font-mono);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px"> วินาที</label>
+        <div class="btns" id="presets">
+          <button type="button" data-s="10">10</button><button type="button" data-s="30">30</button><button type="button" data-s="60">60</button><button type="button" data-s="120">120</button>
+        </div>
+      </div>
+      <p class="bnote" id="durErr" hidden style="color:#c0392b">ใส่เวลาระหว่าง 5 ถึง 600 วินาที</p>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div class="timer" id="timer">60.0<small>วินาที</small></div>
+        <div class="btns">
+          <button type="button" class="go" id="runBtn">เริ่มนับ</button>
+          <button type="button" id="clearBtn">ล้างตาราง</button>
+        </div>
+      </div>
+      <div class="tablebox"><table>
+        <thead><tr><th>รอบ</th><th class="c">เงื่อนไข</th><th>เวลา (วินาที)</th><th>α</th><th>e⁻</th><th>μ</th><th>รวม</th></tr></thead>
+        <tbody id="tb"></tbody>
+      </table><div class="empty" id="tempty">ยังไม่มีข้อมูล ตั้งเวลาแล้วกดเริ่มนับ</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <label for="hSel" style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)">ฮิสโทแกรมของ
+        <select id="hSel" style="width:auto">
+          <option value="t">จำนวนรวม</option><option value="a">แอลฟา</option><option value="e">อิเล็กตรอน</option><option value="m">มิวออน</option>
+        </select></label>
+      <canvas id="hist" aria-label="ฮิสโทแกรมจำนวนนับต่อ 60 วินาที"></canvas>
+      <div class="stats">
+        <div class="stat"><span>จำนวนรอบ</span><b id="sN">0</b></div>
+        <div class="stat"><span>ค่าเฉลี่ย</span><b id="sM">–</b></div>
+        <div class="stat"><span>ส่วนเบี่ยงเบนมาตรฐาน</span><b id="sS">–</b></div>
+        <div class="stat"><span>√ค่าเฉลี่ย</span><b id="sR">–</b></div>
+      </div>
+      <p class="bnote">ฮิสโทแกรมใช้เฉพาะรอบที่เงื่อนไขและเวลานับตรงกับการตั้งค่าปัจจุบัน แท่งคือผลที่นับได้ เส้นประคือการแจกแจงปัวซองที่มีค่าเฉลี่ยเท่ากัน ถ้าการสลายตัวเป็นแบบสุ่มจริง ส่วนเบี่ยงเบนมาตรฐานจะใกล้กับ √ค่าเฉลี่ย</p>
     </div>
   </div>
-</nav>
+</section>
 
-<div class="wrap">
-  <header class="hero">
-    <span class="eyebrow">ทน.รท. 113 · นิวเคลียสและนิวเคลียร์สปิน</span>
-    <h1>ห้องทดลองสร้างนิวเคลียส</h1>
-    <p>ประกอบนิวเคลียส ดูว่าสปินมาจากไหน แล้วพานิวเคลียสเข้าสนามแม่เหล็ก ส่งคลื่น RF ให้สั่นพ้อง จนได้สัญญาณและภาพ MRI ค่าจริงตรวจได้ที่ <a href="https://nds.iaea.org/livechart" target="_blank" rel="noopener">IAEA LiveChart</a></p>
-    <p class="credit">ออกแบบและพัฒนาโดย <b>อ.ดร.วรวัฒน์ ผลทับทิม</b></p>
-  </header>
+<section style="display:flex;flex-direction:column;gap:16px" aria-labelledby="h-guide">
+  <h2 id="h-guide">อ่านรอยอนุภาค</h2>
+  <div class="guide">
+    <div class="track"><canvas class="swatch" data-k="alpha"></canvas><h3>แอลฟา (α)</h3><p>รอยสั้น 3–7 ซม. หนาและตรง นิวเคลียสฮีเลียมมีมวลมาก ไอออไนซ์อากาศหนาแน่น และมีโมเมนตัมสูงจนสนามแม่เหล็กแทบดัดไม่ได้ กระดาษแผ่นเดียวก็กั้นได้</p></div>
+    <div class="track"><canvas class="swatch" data-k="beta"></canvas><h3>บีตา (β⁻)</h3><p>รอยบาง ยาว และคดเคี้ยว อิเล็กตรอนเบาจึงถูกกระเจิงง่าย ในสนามแม่เหล็กจะเลี้ยวตามเข็มนาฬิกาและขดเป็นเกลียวแคบลงเมื่อเสียพลังงาน อะลูมิเนียมไม่กี่มิลลิเมตรกั้นได้</p></div>
+    <div class="track"><canvas class="swatch" data-k="compton"></canvas><h3>แกมมา (γ)</h3><p>ไม่มีประจุจึงไม่ทิ้งรอยเอง แต่จะกระแทกอิเล็กตรอนออกจากอะตอม (การกระเจิงคอมป์ตัน) เห็นเป็นรอยสั้นขดกระจายทั่วกล่อง ตะกั่วลดได้แต่กั้นไม่หมด</p></div>
+    <div class="track"><canvas class="swatch" data-k="muon"></canvas><h3>มิวออน (μ)</h3><p>รอยบาง ตรง และยาวพาดข้ามทั้งกล่อง มาจากรังสีคอสมิก มีโมเมนตัมระดับ GeV จึงแทบไม่โค้งแม้ในสนาม 1 เทสลา มีทั้งประจุบวกและลบ</p></div>
+  </div>
+</section>
 
-  <!-- 1 -->
-  <section class="step" id="s1">
-    <div class="sh"><span class="no">ขั้นที่ 1</span><h2>ประกอบนิวเคลียส</h2></div>
-    <div class="cols">
-      <div class="card">
-        <div class="nuc">
-          <div class="sym"><span class="sa" id="symA">1</span><span class="sz" id="symZ">1</span><span id="symE">H</span></div>
-          <div class="nuc-meta"><span class="nuc-name" id="nucName">ไฮโดรเจน-1</span><span class="badge on" id="mriBadge">—</span></div>
-        </div>
-        <div class="list">
-          <div class="row stepper"><div class="lab"><span>โปรตอน (Z)</span><b id="vZ">1</b></div><div class="ios-step"><button type="button" data-d="Z-1" aria-label="ลดโปรตอน">−</button><button type="button" data-d="Z+1" aria-label="เพิ่มโปรตอน">+</button></div></div>
-          <div class="row stepper"><div class="lab"><span>นิวตรอน (N)</span><b id="vN">0</b></div><div class="ios-step"><button type="button" data-d="N-1" aria-label="ลดนิวตรอน">−</button><button type="button" data-d="N+1" aria-label="เพิ่มนิวตรอน">+</button></div></div>
-        </div>
-        <form class="search" id="searchForm"><input id="q" type="text" placeholder="ค้นหา เช่น C-13, 23Na" aria-label="ค้นหานิวเคลียส" autocomplete="off"><button class="btn tint" type="submit">ไป</button></form>
-        <div class="caps" id="presets" aria-label="นิวเคลียสที่ใช้บ่อย"></div>
-        <p class="foot" id="searchMsg">เลือกนิวเคลียสที่พบในร่างกายและงาน MRI หรือกด + − เอง</p>
-      </div>
-      <div class="card">
-        <div class="seg full" role="group" aria-label="สนามแม่เหล็ก"><button type="button" id="fOff" aria-pressed="false">ไม่มีสนาม</button><button type="button" id="fOn" aria-pressed="true">ในสนาม B₀</button></div>
-        <canvas id="nucCanvas" aria-label="นิวเคลียสหมุนควงในสนามแม่เหล็ก"></canvas>
-        <p class="foot" id="nucCap"></p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 2 -->
-  <section class="step" id="s2">
-    <div class="sh"><span class="no">ขั้นที่ 2</span><h2>นิวคลีออนจับคู่ สปินที่เหลือคือสปินของนิวเคลียส</h2>
-      <p>โปรตอนจับคู่กับโปรตอน นิวตรอนจับคู่กับนิวตรอน คู่หนึ่งชี้สวนกัน (↑↓) สปินจึงหักล้างกัน ถ้ามีตัวที่ไม่มีคู่เหลืออยู่ นิวเคลียสจะมีสปินและใช้ทำ MRI ได้</p></div>
-    <div class="cols">
-      <div class="card">
-        <div class="col pr"><span class="cap">โปรตอน <span id="pCount"></span></span><div class="pairs" id="pairsP"></div></div>
-        <div class="col nt"><span class="cap">นิวตรอน <span id="nCount"></span></span><div class="pairs" id="pairsN"></div></div>
-        <p class="foot">↑↓ = หนึ่งคู่ที่สปินหักล้างกัน · กรอบสีน้ำเงิน = ตัวที่ไม่มีคู่</p>
-        <div class="list">
-          <div class="row"><span class="k">ชนิดนิวเคลียส</span><span class="v" id="spinType">—</span></div>
-          <div class="row"><span class="k">ตัวที่ไม่มีคู่</span><span class="v" id="unpaired">—</span></div>
-          <div class="row"><span class="k">สปิน I ที่ทำนาย</span><span class="v strong" id="spinPred">—</span></div>
-          <div class="row"><span class="k">สปิน I จริง</span><span class="v" id="spinReal">—</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <h3>คล้ายการจัดอิเล็กตรอนตาม shell ไหม</h3>
-        <p class="sub">คล้ายมาก นิวคลีออนเติมระดับพลังงานทีละชั้น และจับคู่สปินตรงข้ามกันเหมือน ↑↓ ในออร์บิทัล แต่มีข้อต่าง 2 ข้อ</p>
-        <div class="list">
-          <div class="row"><span class="k">มี 2 ชุดแยกกัน</span><span class="v">โปรตอนชุดหนึ่ง นิวตรอนอีกชุด ไม่จับคู่ข้ามชนิด</span></div>
-          <div class="row"><span class="k">ชั้นเต็มที่</span><span class="v mono">2, 8, 20, 28, 50, 82, 126</span></div>
-        </div>
-        <div class="list">
-          <div class="row" data-r="ee"><span class="k">Z คู่ · N คู่</span><span class="v">I = 0 · ใช้ MRI ไม่ได้</span></div>
-          <div class="row" data-r="oa"><span class="k">A คี่</span><span class="v">I = 1/2, 3/2 … · ใช้ได้</span></div>
-          <div class="row" data-r="oo"><span class="k">Z คี่ · N คี่</span><span class="v">I = 1, 2, 3 … · ใช้ได้</span></div>
-        </div>
-        <details id="shellBox"><summary>ดูแบบชั้นพลังงาน (shell model)</summary>
-          <div><p class="foot" id="spinExplain"></p>
-          <div class="ladders"><div class="ladder p"><span class="cap">โปรตอน</span><div id="ladP"></div></div><div class="ladder n"><span class="cap">นิวตรอน</span><div id="ladN"></div></div></div></div>
-        </details>
-      </div>
-    </div>
-  </section>
-
-  <!-- 3 -->
-  <section class="step" id="s3">
-    <div class="sh"><span class="no">ขั้นที่ 3</span><h2>ความถี่ Larmor: นิวเคลียสหมุนควงเร็วแค่ไหน</h2></div>
-    <div class="cols">
-      <div class="card">
-        <h3>ความถี่ Larmor คืออะไร</h3>
-        <div class="list">
-          <div class="row"><span class="k">1 · หมุนควงเหมือนลูกข่าง</span><span class="v">ในสนาม B₀ แกนสปินหมุนควงรอบทิศของสนาม (ขั้นที่ 1)</span></div>
-          <div class="row"><span class="k">2 · เร็วตามสนาม</span><span class="v">ยิ่ง B₀ แรง ยิ่งหมุนควงเร็ว เป็นสัดส่วนตรงกัน</span></div>
-          <div class="row"><span class="k">3 · ประจำตัวนิวเคลียส</span><span class="v">แต่ละนิวเคลียสมีค่า γ (γ/2π) ของตัวเอง</span></div>
-        </div>
-        <div class="callout"><span class="mono" style="font-size:1.05rem">f = γ × B₀</span><span>¹H มี γ = 42.58 MHz/T ที่ 1.5 T จึงหมุนควงราว <b>64 ล้านรอบต่อวินาที</b> ความถี่ช่วงนี้คือคลื่นวิทยุ (RF) ใกล้ช่วงวิทยุ FM ห้อง MRI จึงต้องบุผนังกันคลื่นวิทยุจากภายนอก</span></div>
-        <p class="sub">ความถี่นี้สำคัญที่สุดในงาน MRI เพราะเป็นความถี่เดียวที่คลื่น RF จะ "คุย" กับนิวเคลียสได้ (ขั้นที่ 4)</p>
-      </div>
-      <div class="card">
-        <div class="slider"><div class="top"><label for="b0">ความแรงสนาม B₀</label><span class="mono" id="b0v">1.5 T</span></div><input id="b0" type="range" min="0.1" max="7" step="0.05" value="1.5"></div>
-        <div class="seg full" id="bSeg" role="group" aria-label="ค่าสนามที่ใช้บ่อย"></div>
-        <canvas id="freqCanvas" aria-label="ความถี่ Larmor ของนิวเคลียสต่างๆ"></canvas>
-        <div class="list">
-          <div class="row"><span class="k" id="selName">¹H</span><span class="v">γ <span class="mono" id="gam">—</span> MHz/T</span></div>
-          <div class="row"><span class="k">ความถี่ Larmor</span><span class="v strong mono" id="freq">—</span></div>
-        </div>
-        <details><summary>ค่า I และ μ ที่ใช้คำนวณ</summary><div>
-          <div class="inputs"><label for="spinI">สปิน I<input id="spinI" type="text" value="1/2" inputmode="decimal"></label><label for="mu">μ (หน่วย μ<sub>N</sub>)<input id="mu" type="number" step="0.0001" value="2.79285"></label></div>
-          <p class="foot" id="dataSrc"></p><p class="foot">γ (MHz/T) = 7.6226 × μ / I หาค่า I และ μ ได้จาก LiveChart ส่วน Nuclear Moments</p></div></details>
-      </div>
-    </div>
-    <div class="cols">
-      <div class="card">
-        <h3>ในสนาม สปินชี้ตามหรือชี้สวนสนาม</h3>
-        <svg id="zee" viewBox="0 0 560 250" role="img" aria-label="สองระดับพลังงานของสปิน"></svg>
-        <p class="sub">ช่องว่างพลังงานระหว่างสองสถานะเท่ากับพลังงานของคลื่นที่ความถี่ Larmor พอดี คลื่น RF ความถี่นี้จึงพลิกสปินได้</p>
-        <div class="pop" id="pop"></div>
-        <p class="foot" id="popText"></p>
-      </div>
-      <div class="card">
-        <h3>ดูโปรตอน 1,000 ตัว</h3>
-        <div class="seg full" role="group" aria-label="สเกล"><button type="button" id="eReal" aria-pressed="true">สเกลจริง</button><button type="button" id="eBig" aria-pressed="false">ขยายผลสนาม ×100,000</button></div>
-        <canvas id="ensCanvas" aria-label="โปรตอน 1,000 ตัว"></canvas>
-        <div class="list">
-          <div class="row"><span class="k">ชี้ตาม / ชี้สวน</span><span class="v mono" id="ensUD">—</span></div>
-          <div class="row"><span class="k">ส่วนเกินเฉลี่ย</span><span class="v mono" id="ensAvg">—</span></div>
-        </div>
-        <p class="foot" id="ensText"></p>
-        <div class="callout"><span>ใน 1 voxel ขนาด 1×1×5 mm มีโปรตอนราว <b id="vxN">—</b> ตัว ส่วนเกิน <b id="vxE">—</b> ตัว ส่วนเกินทั้งหมดรวมกันเป็น <b>M</b> ซึ่งเครื่อง MRI วัดได้</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 4 -->
-  <section class="step" id="s4">
-    <div class="sh"><span class="no">ขั้นที่ 4</span><h2>การสั่นพ้อง: ส่ง RF แล้วหยุด จึงเกิดสัญญาณ</h2>
-      <p>ลูกศรคือ M ของนิวเคลียสทั้งกลุ่ม ตอนเริ่มชี้ตาม B₀ และยังไม่มีสัญญาณ ลองเลือกความถี่ RF แล้วส่งพัลส์</p></div>
-    <div class="cols">
-      <div class="card">
-        <canvas id="bloch" tabindex="0" aria-label="M ในสนามแม่เหล็ก ลากเพื่อหมุนมุมมอง"></canvas>
-        <p class="status" id="blochMsg"></p>
-        <div class="btns"><button class="btn" type="button" id="btn90">ส่ง RF 90°</button><button class="btn tint" type="button" id="btn180">ส่ง RF 180°</button><button class="btn gray" type="button" id="btnReset">เริ่มใหม่</button></div>
-      </div>
-      <div class="card">
-        <div class="slider"><div class="top"><label for="rf">ความถี่ RF ที่ส่ง</label><span class="mono" id="rfv">— MHz</span></div><input id="rf" type="range" min="1" max="150" step="0.1" value="63.9"></div>
-        <div class="caps" id="rfCaps"></div>
-        <span class="cap">M พลิกได้มากแค่ไหนที่แต่ละความถี่</span>
-        <canvas id="resCanvas" aria-label="กราฟการสั่นพ้อง"></canvas>
-        <span class="cap">สัญญาณที่ขดลวดรับได้</span>
-        <canvas id="sigCanvas" aria-label="สัญญาณ"></canvas>
-      </div>
-    </div>
-    <div class="cols3">
-      <div class="card tight"><h3>① ส่ง RF ตรงความถี่ Larmor</h3><p class="sub">คลื่น RF ผลัก M ตรงจังหวะการหมุนควงทุกรอบ M จึงค่อยๆ เอียงลงจาก B₀ นี่คือการสั่นพ้อง (resonance)</p></div>
-      <div class="card tight"><h3>② ความถี่ไม่ตรง</h3><p class="sub">เหมือนผลักชิงช้าผิดจังหวะ แรงผลักหักล้างกันเอง M แทบไม่ขยับ จึงไม่มีสัญญาณ</p></div>
-      <div class="card tight"><h3>③ หยุด RF</h3><p class="sub">M ที่เอียงอยู่หมุนควงรอบ B₀ ต่อ เป็นแม่เหล็กหมุนใกล้ขดลวด จึงเหนี่ยวนำสัญญาณไฟฟ้า (FID) ซึ่งค่อยๆ หายไป (ขั้นที่ 5)</p></div>
-    </div>
-    <p class="foot">กราฟการสั่นพ้องในภาพกว้างเกินจริงเพื่อให้มองเห็น ช่วงที่สั่นพ้องจริงแคบเพียงหลักร้อย Hz ส่วนความเร็วการหมุนควงก็ชะลอลงมาก</p>
-  </section>
-
-  <!-- 5 -->
-  <section class="step" id="s5">
-    <div class="sh"><span class="no">ขั้นที่ 5</span><h2>T1 และ T2: หลังหยุด RF, M กลับคืนอย่างไร</h2>
-      <p>หลัง RF 90° M นอนราบอยู่ในระนาบ xy จากนั้นมีสองเรื่องเกิดพร้อมกัน แต่ละเนื้อเยื่อเร็วไม่เท่ากัน ความต่างนี้ทำให้ภาพ MRI มีสีเทาไม่เท่ากัน</p></div>
-    <div class="cols">
-      <div class="card">
-        <h3>T1 · M ค่อยๆ ตั้งกลับ</h3>
-        <canvas id="t1Anim" aria-label="ภาพเคลื่อนไหว T1"></canvas>
-        <p class="legendline"><span>↑ ลูกศร = M ตามแนว B₀</span><span>┆ เส้นประ = ตั้งตรงเต็มที่</span><span>% = ตั้งกลับมาได้เท่าไรแล้ว</span></p>
-        <p class="sub">โปรตอนคืนพลังงานให้โมเลกุลรอบข้าง M จึงค่อยๆ ตั้งกลับไปตามแนว B₀ เหมือนลูกข่างที่ล้มแล้วค่อยๆ ตั้งขึ้น <b>ไขมันตั้งกลับเร็ว น้ำตั้งกลับช้า</b></p>
-      </div>
-      <div class="card">
-        <h3>T2 · สปินเสียจังหวะ สัญญาณจางหาย</h3>
-        <canvas id="t2Anim" aria-label="ภาพเคลื่อนไหว T2"></canvas>
-        <p class="legendline"><span>● จุด = กลุ่มโปรตอน</span><span>◯ วงกลม = ระนาบ xy มองจากด้านบน</span><span>➚ ลูกศร = ผลรวม (สัญญาณ)</span></p>
-        <p class="sub">ตอนแรกสปินหมุนพร้อมกันเหมือนนักวิ่งที่ออกตัวพร้อมกัน แล้วค่อยๆ วิ่งเร็วไม่เท่ากันจนกระจาย ผลรวม (ลูกศร) จึงสั้นลง สัญญาณจางหาย <b>น้ำรักษาจังหวะได้นาน ไขมันเสียจังหวะเร็ว</b></p>
-      </div>
-    </div>
-    <div class="callout"><span><b>ทำไมน้ำกับไขมันต่างกัน</b> โมเลกุลน้ำเล็กและเคลื่อนที่เร็วมาก จึงคืนพลังงานยาก (T1 ยาว) แต่รักษาจังหวะได้นาน (T2 ยาว) โมเลกุลไขมันใหญ่และเคลื่อนที่ช้ากว่า จึงคืนพลังงานง่าย (T1 สั้น) และเสียจังหวะเร็วกว่า (T2 สั้น)</span></div>
-
-    <div class="card">
-      <h3>TR และ TE: เครื่องเลือกจังหวะการวัด</h3>
-      <div class="list">
-        <div class="row"><span class="k"><b>TR</b> เวลาระหว่าง RF แต่ละครั้ง</span><span class="v">ให้เวลา M ตั้งกลับ (T1)</span></div>
-        <div class="row"><span class="k"><b>TE</b> เวลาที่วัดสัญญาณหลัง RF</span><span class="v">ระหว่างรอ สัญญาณจางลง (T2)</span></div>
-      </div>
-      <div class="seg full" id="cSeg" role="group" aria-label="ชนิดภาพ"></div>
-      <div class="cols">
-        <div class="slider"><div class="top"><label for="tr">TR</label><span class="mono" id="trv">500 ms</span></div><input id="tr" type="range" min="100" max="5000" step="50" value="500"></div>
-        <div class="slider"><div class="top"><label for="te">TE</label><span class="mono" id="tev">15 ms</span></div><input id="te" type="range" min="5" max="200" step="5" value="15"></div>
-      </div>
-      <p class="status" id="cText"></p>
-    </div>
-
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3>4 เนื้อเยื่อ โดน RF พร้อมกันทุก TR</h3>
-        <div class="btns"><button class="btn tint" type="button" id="rdPlay">หยุด</button><button class="btn gray" type="button" id="rdReset">เริ่มใหม่</button></div></div>
-      <canvas id="rdTimeline" aria-label="ลำดับเวลา RF, TE และ TR"></canvas>
-      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="foot" id="rdClock"></span></div>
-      <p class="status" id="rdMsg"></p>
-      <div class="rdgrid" id="rdGrid"></div>
-      <p class="foot">ช่องสี่เหลี่ยมคือความสว่างของเนื้อเยื่อนั้นในภาพ ช่วง RF ถึง TE เล่นแบบสโลว์โมชัน ช่วงรอถึง TR เล่นแบบเร่ง ดูเวลาจริงจากนาฬิกา รอบแรกทุกเนื้อเยื่อเริ่มจาก M เต็ม ตั้งแต่รอบที่ 2 คือค่าที่ใช้สร้างภาพจริง</p>
-    </div>
-
-    <div class="card">
-      <h3>T1 และ T2 กลายเป็นสีเทาในภาพได้อย่างไร</h3>
-      <p class="sub">ภาพ MRI คือตารางของ voxel ความสว่างของแต่ละพิกเซลคือ <b>ขนาดสัญญาณที่ voxel นั้นส่งออกมาตอนเครื่องวัด (TE)</b> สัญญาณนั้นขึ้นกับคำถามสองข้อ</p>
-      <div class="chain"><span>① ตอนโดน RF ครั้งนี้ M ตั้งกลับมาได้เท่าไร<br><b>T1 ของเนื้อเยื่อ เทียบกับ TR</b></span><b>×</b><span>② ตอนวัด สัญญาณยังเหลือเท่าไร<br><b>T2 ของเนื้อเยื่อ เทียบกับ TE</b></span><b>=</b><span class="res">ความสว่างของพิกเซล</span></div>
-      <div class="bridge">
-        <div class="tbl"><table><thead><tr><th>เนื้อเยื่อ</th><th class="num">① ตั้งกลับทัน</th><th class="num">② ยังเหลือตอนวัด</th><th class="num">ความสว่าง</th></tr></thead><tbody id="bridgeBody"></tbody></table></div>
-        <figure style="margin:0;display:flex;flex-direction:column;gap:6px"><canvas id="miniImg" width="128" height="128" aria-label="ภาพสมองจำลองตาม TR และ TE ปัจจุบัน"></canvas><figcaption class="foot" style="text-align:center" id="miniCap">ภาพที่ได้ด้วย TR/TE นี้</figcaption></figure>
-      </div>
-      <p class="sub" id="bridgeText"></p>
-      <p class="foot">ปริมาณโปรตอนในเนื้อเยื่อก็มีผลด้วย แต่ต่างกันไม่มาก ความต่างหลักจึงมาจาก T1 และ T2 ลองสลับ T1W, T2W และ PD แล้วดูว่าลำดับความสว่างเปลี่ยนอย่างไร ภาพเดียวกันนี้สร้างจริงด้วย k-space ในขั้นที่ 6</p>
-    </div>
-  </section>
-
-  <!-- 6 -->
-  <section class="step" id="s6">
-    <div class="sh"><span class="no">ขั้นที่ 6</span><h2>จากสัญญาณสู่ภาพ MRI</h2>
-      <p>ขดลวดรับสัญญาณจากทุก voxel พร้อมกัน เครื่องจึงทำให้แต่ละตำแหน่งส่งสัญญาณคนละความถี่ แล้วใช้ Fourier transform แยกกลับเป็นตำแหน่ง</p></div>
-    <div class="card">
-      <h3>6.1 เกรเดียนต์: ใช้ความถี่บอกตำแหน่ง</h3>
-      <p class="sub">ท่อน้ำ 3 ท่อ เมื่อเปิดเกรเดียนต์ สนามด้านขวาแรงกว่า ท่อแต่ละท่อจึงหมุนควงด้วยความถี่ Larmor ต่างกัน</p>
-      <div class="cols">
-        <div class="col">
-          <canvas id="gradCanvas" aria-label="ท่อน้ำในสนามที่มีเกรเดียนต์"></canvas>
-          <div class="slider"><div class="top"><label for="grad">ความแรงเกรเดียนต์</label><span class="mono" id="gradv">10 mT/m</span></div><input id="grad" type="range" min="0" max="20" step="0.5" value="10"></div>
-          <div class="seg full" id="gSeg" role="group" aria-label="ค่าเกรเดียนต์"></div>
-          <p class="status" id="gradMsg"></p>
-        </div>
-        <div class="col">
-          <span class="cap">สัญญาณที่รับได้ (หลายความถี่ปนกัน)</span>
-          <canvas id="fidCanvas" aria-label="สัญญาณ"></canvas>
-          <span class="cap">หลัง Fourier transform (ความถี่ = ตำแหน่ง)</span>
-          <canvas id="specCanvas" aria-label="สเปกตรัม"></canvas>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <h3>6.2 เก็บสัญญาณลง k-space แล้วแปลงเป็นภาพ</h3>
-      <div class="cols">
-        <div class="col">
-          <div class="imgpair">
-            <figure><canvas id="kCanvas" width="128" height="128" aria-label="k-space"></canvas><figcaption>k-space (ข้อมูลดิบ)</figcaption></figure>
-            <figure><canvas id="imgCanvas" width="128" height="128" aria-label="ภาพ แตะเพื่อตรวจ voxel"></canvas><figcaption>ภาพ · แตะเพื่อตรวจ voxel</figcaption></figure>
-          </div>
-          <div class="btns"><button class="btn" type="button" id="btnAcq">เริ่มเก็บข้อมูล</button><button class="btn gray" type="button" id="btnFill">เติมให้ครบ</button><button class="btn gray" type="button" id="btnClear">ล้าง</button></div>
-          <div class="seg full" role="group" aria-label="ลำดับการเก็บ"><button type="button" id="oTop" aria-pressed="true">บนลงล่าง</button><button type="button" id="oCen" aria-pressed="false">จากกลางออกไป</button></div>
-          <div class="list">
-            <div class="row"><span class="k">แถวที่เก็บแล้ว</span><span class="v mono" id="kRows">128 / 128</span></div>
-            <div class="row"><span class="k">เวลาสแกน (TR × 128)</span><span class="v mono" id="scanT">—</span></div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="seg full" id="cSeg2" role="group" aria-label="ชนิดภาพ"></div>
-          <p class="status" id="probe">แตะที่ภาพเพื่อดูว่า voxel นั้นเป็นเนื้อเยื่ออะไร และทำไมสว่างหรือมืด</p>
-          <span class="cap">ขั้นตอนที่เครื่อง MRI ทำ</span>
-          <ol class="pipe">
-            <li><b>เลือกชั้นภาพ</b> เปิดเกรเดียนต์พร้อมส่ง RF เฉพาะชั้นที่ความถี่ Larmor ตรงกับ RF เท่านั้นที่สั่นพ้อง (ขั้นที่ 4)</li>
-            <li><b>พลิก M</b> แล้วรอ T1 และ T2 ทำงานตาม TR และ TE (ขั้นที่ 5)</li>
-            <li><b>เข้ารหัสตำแหน่ง</b> ด้วยเกรเดียนต์ ได้ข้อมูลทีละแถวของ k-space ทุก TR</li>
-            <li><b>Fourier transform</b> แปลง k-space เป็นภาพ ความสว่างแต่ละพิกเซลคือ M ของ voxel นั้นตอนวัดที่ TE</li>
-          </ol>
-          <p class="foot">ลองล้างแล้วเก็บแบบ "จากกลางออกไป" หยุดกลางทาง แถวกลางให้ความสว่างและคอนทราสต์ แถวขอบให้รายละเอียด ภาพหัวเป็นแบบจำลองอย่างง่าย</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 7 -->
-  <section class="step" id="s7">
-    <div class="sh"><span class="no">ขั้นที่ 7</span><h2>ทำไม MRI จึงใช้ ¹H เป็นหลัก</h2>
-      <p>¹H ให้สัญญาณต่อนิวเคลียสแรงที่สุด และมีมากที่สุดในร่างกาย (น้ำและไขมัน) ความถี่คำนวณที่ B₀ = <span class="mono" id="tblB0">1.5</span> T แตะแถวเพื่อเลือกนิวเคลียส</p></div>
-    <div class="card">
-      <div class="tbl"><table id="mriTable"><thead><tr><th>นิวเคลียส</th><th>I</th><th class="num">f (MHz)</th><th class="num">ในธรรมชาติ (%)</th><th class="num">ความไวเทียบ ¹H</th><th>ใช้งาน</th></tr></thead><tbody></tbody></table></div>
-      <p class="foot">ความไวสัมพัทธ์คิดจาก γ, I และความอุดมสมบูรณ์ในธรรมชาติ ค่าในตารางเป็นค่าอ้างอิงจากตำรา ปัดเศษ ตรวจค่าล่าสุดได้ที่ LiveChart</p>
-    </div>
-  </section>
-
-  <!-- tasks -->
-  <section class="step" id="tasks">
-    <div class="sh"><span class="no">การทดลอง</span><h2>ตามรอยโปรตอน: จากนิวเคลียสสู่ภาพ MRI</h2>
-      <p>ทำต่อเนื่องกัน 5 ตอน ผลของแต่ละตอนเป็นวัตถุดิบของตอนถัดไป บันทึกผลลงตาราง แล้วปิดท้ายด้วยรายงานสรุปหนึ่งเรื่อง สิ่งที่พิมพ์จะเก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น ให้คัดลอกส่งตามช่องทางของรายวิชา</p></div>
-    <div id="labParts" class="lab" style="display:flex;flex-direction:column;gap:14px"></div>
-    <div class="card part lab">
-      <div class="part-h"><h3>รายงานสรุปผลการทดลอง</h3><span class="no">ปิดท้าย</span></div>
-      <p class="sub">เขียน 1–2 ย่อหน้า เล่าเส้นทางของโปรตอนในบริเวณรอยโรค ตั้งแต่เป็นนิวเคลียส ¹H จนกลายเป็นจุดสว่างในภาพ T2W โดยอ้างตัวเลขที่บันทึกจากตอนที่ 1–5</p>
-      <div class="kw"><span>สปินไม่มีคู่</span><span>หมุนควง</span><span>ความถี่ Larmor</span><span>ส่วนเกิน · M</span><span>การสั่นพ้อง</span><span>T1 · TR</span><span>T2 · TE</span><span>เกรเดียนต์</span><span>k-space</span></div>
-      <textarea id="labReport" aria-label="รายงานสรุป" placeholder="เริ่มจาก… โปรตอนในรอยโรคบวมน้ำเป็นนิวเคลียส ¹H ที่มีสปิน…"></textarea>
-      <div class="btns"><button class="btn gray" type="button" id="labCopy">คัดลอกผลทั้งหมด</button><button class="btn gray" type="button" id="labClear">ล้างบันทึก</button></div>
-      <p class="foot" id="labMsg"></p>
-    </div>
-    <p class="foot" style="padding-inline:4px">แหล่งข้อมูลสำหรับตรวจค่า: <a href="https://nds.iaea.org/livechart" target="_blank" rel="noopener">IAEA LiveChart of Nuclides</a> หรือแอป IAEA Isotope Browser</p>
-    <div class="foot-credit"><span>ห้องทดลองสร้างนิวเคลียส · รายวิชา ทน.รท. 113</span><span>ออกแบบและพัฒนาโดย <b>อ.ดร.วรวัฒน์ ผลทับทิม</b></span></div>
-  </section>
+<section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="h-try">
+  <h2 id="h-try">ลองดู</h2>
+  <ol class="tries">
+    <li>เปิดสนามแม่เหล็ก 0.3 T แล้วเลือก Sr-90 รอยบีตาเลี้ยวไปทางไหน แล้วเปลี่ยนเป็น Am-241 ทำไมรอยแอลฟาแทบไม่โค้ง ใช้สูตร r = p/(qB) อธิบาย</li>
+    <li>เลือก Cs-137 สังเกตว่าไม่มีรอยพุ่งออกจากแหล่งกำเนิดโดยตรง อธิบายว่ารอยที่เห็นมาจากไหน</li>
+    <li>ตั้งค่ารังสีพื้นหลัง นับรอบละ 10 วินาทีหลายรอบ แล้วเปลี่ยนเป็นรอบละ 60 วินาที เปรียบเทียบส่วนเบี่ยงเบนมาตรฐานกับ √ค่าเฉลี่ย และดูว่าความไม่แน่นอนสัมพัทธ์ (SD ÷ ค่าเฉลี่ย) ลดลงอย่างไรเมื่อนับนานขึ้น</li>
+    <li>เก็บข้อมูลแบบมี Am-241 และไม่มี ด้วยเวลานับเท่ากัน ลบค่าพื้นหลังออก จะได้อัตรานับจากแหล่งกำเนิดเท่าไร และมีความไม่แน่นอนเท่าไร</li>
+  </ol>
+  <p class="note">แบบจำลองนี้ลดรูปฟิสิกส์ให้เห็นง่ายเพื่อการสอน อัตราการเกิดรอยและความยาวรอยที่มองเห็นในชั้นไอเป็นค่าโดยประมาณ ไม่ใช่ค่าจริงเชิงปริมาณ แหล่งกำเนิดจริงต้องเป็น sealed source ที่หน่วยงานครอบครองถูกต้องตามข้อกำหนดของ ปส.</p>
+</section>
 </div>
 
 <script>
 (function(){
-const EL=["n","H","He","Li","Be","B","C","N","O","F","Ne","Na","Mg","Al","Si","P","S","Cl","Ar","K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr","Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd","In","Sn","Sb","Te","I","Xe","Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg","Tl","Pb","Bi","Po","At","Rn","Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm"];
-const TH={1:"ไฮโดรเจน",2:"ฮีเลียม",3:"ลิเทียม",4:"เบริลเลียม",5:"โบรอน",6:"คาร์บอน",7:"ไนโตรเจน",8:"ออกซิเจน",9:"ฟลูออรีน",10:"นีออน",11:"โซเดียม",12:"แมกนีเซียม",13:"อะลูมิเนียม",14:"ซิลิคอน",15:"ฟอสฟอรัส",16:"กำมะถัน",17:"คลอรีน",18:"อาร์กอน",19:"โพแทสเซียม",20:"แคลเซียม",26:"เหล็ก",27:"โคบอลต์",29:"ทองแดง",30:"สังกะสี",53:"ไอโอดีน",54:"ซีนอน",64:"แกโดลิเนียม",79:"ทองคำ",82:"ตะกั่ว",92:"ยูเรเนียม"};
-// textbook reference values (rounded) — verify on IAEA LiveChart
-const DATA={
-"1-0":{I:"1/2+",mu:2.79285,ab:99.9885,use:"ภาพ MRI ทางคลินิก (น้ำ ไขมัน)"},
-"1-1":{I:"1+",mu:0.85744,ab:0.0115,use:"ติดตามการเผาผลาญ (²H MRS, วิจัย)"},
-"2-1":{I:"1/2+",mu:-2.12762,ab:0.000134,use:"MRI ปอด แบบ hyperpolarized"},
-"2-2":{I:"0+",ab:99.9999},
-"3-3":{I:"1+",mu:0.82205,ab:7.59},
-"3-4":{I:"3/2-",mu:3.25644,ab:92.41,use:"ติดตามยาลิเทียมในสมอง (วิจัย)"},
-"6-6":{I:"0+",ab:98.93},
-"6-7":{I:"1/2-",mu:0.70241,ab:1.07,use:"MRS และ ¹³C-pyruvate แบบ hyperpolarized"},
-"7-7":{I:"1+",mu:0.40376,ab:99.636},
-"7-8":{I:"1/2-",mu:-0.28319,ab:0.364,use:"ติดฉลากสารในงานวิจัย"},
-"8-8":{I:"0+",ab:99.757},
-"8-9":{I:"5/2+",mu:-1.89379,ab:0.038,use:"วัดการใช้ออกซิเจนของสมอง (วิจัย)"},
-"9-10":{I:"1/2+",mu:2.62887,ab:100,use:"ติดตามยา/สารที่ติดฉลาก ¹⁹F"},
-"11-12":{I:"3/2+",mu:2.21752,ab:100,use:"MRI โซเดียม: กระดูกอ่อน สมอง ไต"},
-"14-15":{I:"1/2+",mu:-0.55529,ab:4.685},
-"15-16":{I:"1/2+",mu:1.13160,ab:100,use:"MRS: ATP, PCr ในกล้ามเนื้อและสมอง"},
-"17-18":{I:"3/2+",mu:0.82187,ab:75.76},
-"19-20":{I:"3/2+",mu:0.39151,ab:93.258,use:"MRI โพแทสเซียม (วิจัย, สนามสูง)"},
-"20-20":{I:"0+",ab:96.94},
-"26-30":{I:"0+",ab:91.754},
-"26-31":{I:"1/2-",mu:0.09062,ab:2.119},
-"54-75":{I:"1/2+",mu:-0.7780,ab:26.4,use:"MRI ปอด แบบ hyperpolarized"}
-};
-const PRESETS=[["¹H",1,0],["²H",1,1],["³He",2,1],["⁴He",2,2],["¹²C",6,6],["¹³C",6,7],["¹⁴N",7,7],["¹⁵N",7,8],["¹⁶O",8,8],["¹⁷O",8,9],["¹⁹F",9,10],["²³Na",11,12],["³¹P",15,16],["³⁹K",19,20],["⁴⁰Ca",20,20],["¹²⁹Xe",54,75]];
-const SHELL=[["1s",1,0],["1p",3,1],["1p",1,1],["1d",5,2],["2s",1,0],["1d",3,2],["1f",7,3],["2p",3,1],["1f",5,3],["2p",1,1],["1g",9,4],["1g",7,4],["2d",5,2],["2d",3,2],["3s",1,0],["1h",11,5],["1h",9,5],["2f",7,3],["2f",5,3],["3p",3,1],["3p",1,1],["1i",13,6],["2g",9,4],["3d",5,2],["1i",11,6],["2g",7,4],["4s",1,0],["3d",3,2],["1j",15,7]];
-const MAGIC=[2,8,20,28,50,82,126];
-
-const h=6.62607015e-34,kB=1.380649e-23,GH=42.577,TBODY=310;
-const S={Z:1,N:0,B0:1.5,field:true};
 const $=id=>document.getElementById(id);
-const sup=s=>String(s).replace(/[0-9]/g,c=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[c]);
-const sym=Z=>EL[Z]||"?";
-const fmt=(x,d=2)=>x===null||x===undefined||!isFinite(x)?"—":x.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
-const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const minus=s=>String(s).replace(/-/g,"−");
-const sci=x=>{const [a,b]=x.toExponential(1).split("e");return a+"×10<sup>"+b.replace("-","−").replace("+","")+"</sup>";};
-function parseI(s){if(s===null||s===undefined)return NaN;s=String(s).replace(/[+\-−]$/,"").trim();if(s==="")return NaN;if(s.includes("/")){const [a,b]=s.split("/").map(Number);return a/b;}return Number(s);}
-function iLabel(I){return Number.isInteger(I)?String(I):(Math.round(I*2)+"/2");}
-const FM=()=>css("--mono").split(",")[0];const FF=()=>css("--font").split(",")[0];
-function sizeCanvas(c,bg){const dpr=window.devicePixelRatio||1,w=c.clientWidth,hh=c.clientHeight;if(!w||!hh)return null;
- if(c.width!==Math.round(w*dpr)||c.height!==Math.round(hh*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(hh*dpr);}
- const g=c.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle=css(bg||"--canvas");g.fillRect(0,0,w,hh);return {g,w,h:hh};}
-function arrow(g,x0,y0,x1,y1,col,wd){g.strokeStyle=col;g.fillStyle=col;g.lineWidth=wd;g.lineCap="round";g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke();
- const dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy);if(L<6)return;const ux=dx/L,uy=dy/L,hs=Math.min(13,L*.35)*(.5+wd/6);
- g.beginPath();g.moveTo(x1+ux*2,y1+uy*2);g.lineTo(x1-ux*hs-uy*hs*.55,y1-uy*hs+ux*hs*.55);g.lineTo(x1-ux*hs+uy*hs*.55,y1-uy*hs-ux*hs*.55);g.closePath();g.fill();}
-const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const cv=$('cv'),cx=cv.getContext('2d');
+const COL={alpha:'#eef1f3',electron:'#7fb2e6',muon:'#7fd4b6'};
+let W=0,H=0,SC=2,T=-78,B=0,src='none',sh='none',paused=false,tracks=[],n={a:0,e:0,m:0},last=performance.now();
+function size(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=Math.max(1,r.width*d);cv.height=Math.max(1,r.height*d);cx.setTransform(d,0,0,d,0,0);W=r.width;H=r.height;SC=W/250;}
+size();addEventListener('resize',()=>{size();drawHist();});
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v);}
+const SRCNAME={none:'พื้นหลัง',am:'Am-241',sr:'Sr-90',cs:'Cs-137'};
+const SHNAME={none:'',paper:'กระดาษ',al:'Al 3 มม.',pb:'Pb 1 ซม.'};
+const TR={none:{a:1,b:1,g:1},paper:{a:0,b:0.95,g:1},al:{a:0,b:0.08,g:0.97},pb:{a:0,b:0,g:0.29}};
+function eff(){return Math.max(0,Math.min(1,(-T-25)/35));}
+function cond(){return SRCNAME[src]+(src!=='none'&&sh!=='none'?' · '+SHNAME[sh]:'')+' · '+B.toFixed(2)+' T · '+T+'°C';}
+function gens(){
+  const e=eff(),t=TR[sh],g=[
+    {k:'a',r:0.25,f:bgAlpha},{k:'e',r:0.5,f:bgBeta},{k:'m',r:0.35,f:muon}];
+  if(src==='am')g.push({k:'a',r:2.2*t.a,f:srcAlpha});
+  if(src==='sr')g.push({k:'e',r:2.0*t.b,f:srcBeta});
+  if(src==='cs')g.push({k:'e',r:1.5*t.g,f:compton});
+  g.forEach(x=>x.r*=e);return g;
+}
+function path(o){
+  const pts=[[o.x,o.y]];let x=o.x,y=o.y,th=o.th,s=0;
+  while(s<o.L){
+    const p=o.loss?o.p*Math.max(0.22,Math.sqrt(Math.max(0,1-s/(o.L*1.1)))):o.p;
+    if(B>0&&o.q){const r=p/(0.3*B*Math.abs(o.q))*SC;th-=Math.sign(o.q)*o.ds/r;}
+    if(o.scat)th+=gauss()*o.scat/p*Math.sqrt(o.ds);
+    x+=Math.cos(th)*o.ds;y+=Math.sin(th)*o.ds;s+=o.ds;pts.push([x,y]);
+    if(x<-60||x>W+60||y<-60||y>H+60)break;
+  }
+  return pts;
+}
+function pe(ke){return Math.sqrt(ke*ke+2*ke*0.511);}
+function alphaTrack(x,y,E){const R=3.1*Math.pow(E,1.5)*(0.45+0.55*Math.random());return {kind:'alpha',w:3.6,pts:path({x,y,th:Math.random()*6.2832,p:Math.sqrt(2*3727.4*E),q:2,L:R*SC,ds:2,scat:0.5})};}
+function electronTrack(x,y,ke,Lmm){return {kind:'electron',w:1.1,dash:true,pts:path({x,y,th:Math.random()*6.2832,p:pe(ke),q:-1,L:Lmm*SC,ds:2.5,scat:0.2,loss:true})};}
+function bgAlpha(){const E=[5.49,6.0,7.69][Math.floor(Math.random()*3)];return alphaTrack(Math.random()*W,Math.random()*H,E);}
+function srcAlpha(){return alphaTrack(W/2,H/2,5.49);}
+function bgBeta(){const ke=1.3*(1-Math.sqrt(1-Math.random()));return electronTrack(Math.random()*W,Math.random()*H,ke,20+ke*45);}
+function srcBeta(){const max=Math.random()<0.5?0.546:2.28,ke=Math.max(0.05,max*(1-Math.sqrt(1-Math.random())));return electronTrack(W/2,H/2,ke,20+ke*45);}
+function compton(){const a=Math.random()*6.2832,r=Math.min(W,H)*0.48*Math.sqrt(Math.random()),ke=0.05+Math.random()*0.428;return electronTrack(W/2+Math.cos(a)*r,H/2+Math.sin(a)*r,ke,6+ke*40);}
+function muon(){const a=Math.random()*6.2832,L=Math.hypot(W,H)*1.3,cxp=Math.random()*W,cyp=Math.random()*H;
+  return {kind:'muon',w:1.5,pts:path({x:cxp-Math.cos(a)*L/2,y:cyp-Math.sin(a)*L/2,th:a,p:1000+(-Math.log(Math.random()))*3000,q:Math.random()<0.56?1:-1,L,ds:6})};}
+function strokeT(c,t){c.strokeStyle=COL[t.kind];c.lineCap='round';c.lineJoin='round';c.lineWidth=t.w;c.setLineDash(t.dash?[2,2]:[]);c.beginPath();c.moveTo(t.pts[0][0],t.pts[0][1]);for(let i=1;i<t.pts.length;i++)c.lineTo(t.pts[i][0],t.pts[i][1]);c.stroke();}
+function show(){$('ca').textContent=n.a;$('ce').textContent=n.e;$('cm').textContent=n.m;}
 
-/* ---------- nucleus selection ---------- */
-function setNuc(Z,N){S.Z=Math.max(1,Math.min(EL.length-1,Z|0));S.N=Math.max(0,Math.min(160,N|0));onNucleus();}
-document.querySelectorAll(".ios-step button").forEach(b=>b.addEventListener("click",()=>{const d=b.dataset.d,n=Number(d.slice(1));d[0]==="Z"?setNuc(S.Z+n,S.N):setNuc(S.Z,S.N+n);}));
-$("searchForm").addEventListener("submit",e=>{e.preventDefault();const r=parseNuc($("q").value);
- if(r){setNuc(r.Z,r.A-r.Z);$("searchMsg").textContent="ไปที่ "+sym(r.Z)+"-"+r.A;}else $("searchMsg").textContent="ไม่พบ ลองพิมพ์ C-13, 13C หรือ Na23";});
-function parseNuc(s){s=s.trim().replace(/\s+/g,"");let m=s.match(/^([A-Za-z]{1,2})-?(\d{1,3})$/),el,A;
- if(m){el=m[1];A=+m[2];}else{m=s.match(/^(\d{1,3})-?([A-Za-z]{1,2})$/);if(!m)return null;A=+m[1];el=m[2];}
- el=el[0].toUpperCase()+el.slice(1).toLowerCase();const Z=EL.indexOf(el);if(Z<1||A<Z)return null;return {Z,A};}
-PRESETS.forEach(p=>{const b=document.createElement("button");b.type="button";b.textContent=p[0];b.dataset.z=p[1];b.dataset.n=p[2];b.addEventListener("click",()=>setNuc(p[1],p[2]));$("presets").appendChild(b);});
+$('temp').addEventListener('input',e=>{T=+e.target.value;$('tl').textContent=(T<0?'−':'')+Math.abs(T)+' °C';drawHist();});
+$('bf').addEventListener('input',e=>{B=+e.target.value;$('bl').textContent=B.toFixed(2)+' T';drawHist();});
+$('srcSel').addEventListener('change',e=>{src=e.target.value;drawHist();});
+$('pause').addEventListener('click',()=>{paused=!paused;$('pause').textContent=paused?'เล่นต่อ':'หยุดชั่วคราว';});
+$('reset').addEventListener('click',()=>{n={a:0,e:0,m:0};show();});
 
-/* ---------- shell model ---------- */
-function fillInfo(n){let rem=n,idx=-1;const occ=[];for(let i=0;i<SHELL.length;i++){const cap=SHELL[i][1]+1,f=Math.max(0,Math.min(cap,rem));occ.push(f);if(f>0)idx=i;rem-=f;}return {occ,idx};}
-const jStr=t=>t+"/2";
-function ladder(n){const {occ,idx}=fillInfo(n);if(n===0)return `<p class="foot">ไม่มี</p>`;
- const top=Math.min(SHELL.length-1,idx+1),bot=Math.max(0,idx-4);let out="",cum=0;const cums=SHELL.map(s=>cum+=s[1]+1);
- for(let i=top;i>=bot;i--){const [nl,tj]=SHELL[i],cap=tj+1;if(MAGIC.includes(cums[i]))out+=`<div class="magic">${cums[i]}</div>`;
-  let dots="";for(let k=0;k<cap;k++){const f=k<occ[i];const u=f&&i===idx&&occ[i]%2===1&&k===occ[i]-1;dots+=`<b class="${f?"f":""}${u?" u":""}"></b>`;}
-  out+=`<div class="lv"><span>${nl}<sub>${jStr(tj)}</sub></span><span class="dots">${dots}</span></div>`;}
- if(bot>0)out+=`<div class="more" style="text-align:center">ชั้นล่างอีก ${cums[bot-1]} ตัว จับคู่ครบ</div>`;return out;}
-const lastLevel=n=>{const {idx}=fillInfo(n);return idx>=0?SHELL[idx]:null;};
-function predictSpin(Z,N){const ze=Z%2===0,ne=N%2===0;
- if(ze&&ne)return {type:"ee",label:"คู่-คู่",pred:"0",exp:"Z และ N เป็นเลขคู่ทั้งคู่ ทุกตัวมีคู่ สปินหักล้างกันหมด I = 0"};
- if(ze!==ne){const odd=ze?N:Z,lv=lastLevel(odd),who=ze?"นิวตรอน":"โปรตอน";
-  return {type:"oa",label:"A คี่",pred:jStr(lv[1]),I:lv[1]/2,exp:`${who}ตัวที่ ${odd} ไม่มีคู่ อยู่ในชั้น ${lv[0]}<sub>${jStr(lv[1])}</sub> สปินของนิวเคลียสจึงเท่ากับ ${jStr(lv[1])} ตามแบบจำลอง (บางนิวเคลียสค่าจริงต่างไป เพราะชั้นพลังงานที่ใกล้กันสลับลำดับได้)`};}
- const lp=lastLevel(Z),ln=lastLevel(N),lo=Math.abs(lp[1]-ln[1])/2,hi=(lp[1]+ln[1])/2;
- return {type:"oo",label:"คี่-คี่",pred:`${lo}–${hi}`,exp:`มีทั้งโปรตอนและนิวตรอนที่ไม่มีคู่ สปินรวมเป็นจำนวนเต็มระหว่าง ${lo} ถึง ${hi} แบบจำลองอย่างง่ายบอกค่าแน่นอนไม่ได้`};}
-function pairsHTML(n){if(n===0)return `<span class="more">ไม่มี</span>`;const pairs=Math.floor(n/2),lone=n%2,show=Math.min(pairs,24);let s="";
- for(let i=0;i<show;i++)s+=`<span class="pair"><i>↑</i><i>↓</i></span>`;if(pairs>show)s+=`<span class="more">+ อีก ${pairs-show} คู่</span>`;
- if(lone)s+=`<span class="pair lone"><i>↑</i></span>`;return s;}
+/* data bench */
+let rows=[],run=null,DUR=60;
+const durIn=$('dur');
+function setTimer(v){$('timer').firstChild.nodeValue=v.toFixed(1);}
+function readDur(){const v=Number(durIn.value);const ok=Number.isFinite(v)&&v>=5&&v<=600;$('durErr').hidden=ok;if(ok){DUR=Math.round(v);if(!run)setTimer(DUR);drawHist();}return ok;}
+durIn.addEventListener('input',readDur);
+document.querySelectorAll('#presets button').forEach(b=>b.addEventListener('click',()=>{durIn.value=b.dataset.s;readDur();}));
+function stopRun(){run=null;$('runBtn').textContent='เริ่มนับ';setTimer(DUR);}
+function addRow(c,dur){rows.push({i:rows.length+1,cond:cond(),dur,a:c.a,e:c.e,m:c.m,t:c.a+c.e+c.m});renderTable();drawHist();}
+function renderTable(){
+  const tb=$('tb');tb.textContent='';$('tempty').hidden=rows.length>0;
+  for(let j=rows.length-1;j>=0;j--){const r=rows[j],tr=document.createElement('tr');
+    [[r.i,''],[r.cond,'c'],[r.dur,''],[r.a,''],[r.e,''],[r.m,''],[r.t,'']].forEach(([v,c])=>{const td=document.createElement('td');if(c)td.className=c;td.textContent=v;tr.appendChild(td);});
+    tb.appendChild(tr);}
+}
+$('runBtn').addEventListener('click',()=>{
+  if(run){stopRun();return;}
+  if(!readDur())return;
+  run={t:0,dur:DUR,c:{a:0,e:0,m:0},cond:cond()};$('runBtn').textContent='ยกเลิกการนับ';
+});
+$('clearBtn').addEventListener('click',()=>{rows=[];renderTable();drawHist();});
 
-/* ---------- spin values ---------- */
-function spinVals(){const I=parseI($("spinI").value),mu=parseFloat($("mu").value);
- if(I===0)return {I:0,zero:true};if(!isFinite(I)||I<=0||!isFinite(mu))return {I,missing:true};return {I,mu,g:7.6226*mu/I};}
+const hc=$('hist'),hx=hc.getContext('2d');
+function tok(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function drawHist(){
+  const r=hc.getBoundingClientRect(),d=window.devicePixelRatio||1;hc.width=Math.max(1,r.width*d);hc.height=Math.max(1,r.height*d);hx.setTransform(d,0,0,d,0,0);
+  const w=r.width,h=r.height,key=$('hSel').value,cur=cond();
+  const vals=rows.filter(x=>x.cond===cur&&x.dur===DUR).map(x=>x[key]);
+  hx.clearRect(0,0,w,h);
+  const ink=tok('--muted'),line=tok('--line'),bar=tok('--ice'),pl=tok('--alcohol');
+  hx.font='12px "IBM Plex Mono", monospace';hx.fillStyle=ink;
+  $('sN').textContent=vals.length;
+  if(vals.length<2){$('sM').textContent=$('sS').textContent=$('sR').textContent='–';hx.textAlign='center';hx.fillText(vals.length?'ต้องมีอย่างน้อย 2 รอบ':'ยังไม่มีรอบที่ตรงกับการตั้งค่านี้',w/2,h/2);return;}
+  const N=vals.length,m=vals.reduce((s,v)=>s+v,0)/N,sd=Math.sqrt(vals.reduce((s,v)=>s+(v-m)*(v-m),0)/(N-1));
+  $('sM').textContent=m.toFixed(1);$('sS').textContent=sd.toFixed(1);$('sR').textContent=Math.sqrt(m).toFixed(1);
+  const lo0=Math.min(...vals,Math.floor(m-3*Math.sqrt(m))),hi0=Math.max(...vals,Math.ceil(m+3*Math.sqrt(m)));
+  const lo=Math.max(0,lo0),span=hi0-lo+1,bw=Math.max(1,Math.ceil(span/22)),nb=Math.ceil(span/bw);
+  const cnt=new Array(nb).fill(0);vals.forEach(v=>{const b=Math.floor((v-lo)/bw);if(b>=0&&b<nb)cnt[b]++;});
+  const exp=new Array(nb).fill(0);let lf=0;
+  for(let k=0;k<lo+nb*bw;k++){if(k>0)lf+=Math.log(k);if(k>=lo){const p=Math.exp(-m+k*Math.log(Math.max(m,1e-9))-lf);exp[Math.floor((k-lo)/bw)]+=p*N;}}
+  const pad={l:30,r:8,t:10,b:24},pw=w-pad.l-pad.r,ph=h-pad.t-pad.b;
+  const ymax=Math.max(1,...cnt,...exp)*1.1,step=ymax>10?Math.ceil(ymax/4):Math.max(1,Math.ceil(ymax/4));
+  hx.strokeStyle=line;hx.lineWidth=1;hx.textAlign='right';hx.textBaseline='middle';
+  for(let y=0;y<=ymax;y+=step){const py=pad.t+ph-(y/ymax)*ph;hx.beginPath();hx.moveTo(pad.l,py);hx.lineTo(w-pad.r,py);hx.stroke();hx.fillText(y,pad.l-6,py);}
+  const cw=pw/nb;hx.fillStyle=bar;
+  cnt.forEach((c,i)=>{if(!c)return;const bh=(c/ymax)*ph;hx.fillRect(pad.l+i*cw+1,pad.t+ph-bh,Math.max(1,cw-2),bh);});
+  hx.strokeStyle=pl;hx.lineWidth=2;hx.setLineDash([5,4]);hx.beginPath();
+  exp.forEach((v,i)=>{const px=pad.l+(i+0.5)*cw,py=pad.t+ph-(v/ymax)*ph;i?hx.lineTo(px,py):hx.moveTo(px,py);});hx.stroke();hx.setLineDash([]);
+  hx.fillStyle=ink;hx.textAlign='center';hx.textBaseline='top';
+  const lab=Math.max(1,Math.ceil(nb/6));
+  for(let i=0;i<nb;i+=lab){hx.fillText(lo+i*bw,pad.l+(i+0.5)*cw,pad.t+ph+6);}
+}
+$('hSel').addEventListener('change',drawHist);
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawHist);}catch(e){}
+new MutationObserver(drawHist).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
-function renderNucleus(){const Z=S.Z,N=S.N,A=Z+N,r=DATA[Z+"-"+N],sp=predictSpin(Z,N);
- $("vZ").textContent=Z;$("vN").textContent=N;$("symA").textContent=A;$("symZ").textContent=Z;$("symE").textContent=sym(Z);
- $("nucName").textContent=(TH[Z]||sym(Z))+"-"+A;
- document.querySelectorAll("#presets button").forEach(c=>c.setAttribute("aria-pressed",String(+c.dataset.z===Z&&+c.dataset.n===N)));
- const realI=r?parseI(r.I):(sp.type==="ee"?0:NaN);const active=isFinite(realI)?realI>0:sp.type!=="ee";
- const bd=$("mriBadge");bd.className="badge "+(active?"on":"off");bd.textContent=active?"มีสปิน · ใช้ทำ MRI ได้":"สปินเป็นศูนย์ · MRI มองไม่เห็น";
- $("pairsP").innerHTML=pairsHTML(Z);$("pairsN").innerHTML=pairsHTML(N);$("pCount").textContent="· "+Z;$("nCount").textContent="· "+N;
- const up=(Z%2)+(N%2);$("unpaired").textContent=up===0?"ไม่มี":(Z%2?"โปรตอน 1":"")+(Z%2&&N%2?" · ":"")+(N%2?"นิวตรอน 1":"");
- $("spinType").textContent=sp.label;$("spinPred").textContent=sp.type==="ee"?"0":sp.type==="oa"?"ครึ่งจำนวนเต็ม ("+sp.pred+")":"จำนวนเต็ม ("+sp.pred+")";
- $("spinReal").textContent=r?minus(r.I.replace(/[+\-]$/,"")):"ตรวจใน LiveChart";
- document.querySelectorAll("#s2 [data-r]").forEach(x=>x.style.background=x.dataset.r===sp.type?"var(--blue-t)":"");
- $("spinExplain").innerHTML=sp.exp;$("ladP").innerHTML=ladder(Z);$("ladN").innerHTML=ladder(N);
- if(r){$("spinI").value=r.I.replace(/[+\-]$/,"");$("mu").value=r.mu!==undefined?r.mu:"";}
- else if(sp.type==="ee"){$("spinI").value="0";$("mu").value="";}
- else{$("spinI").value=sp.I?iLabel(sp.I):"";$("mu").value="";}
- buildGeom();}
+/* swatches */
+function swatches(){document.querySelectorAll('.swatch').forEach(s=>{
+  const r=s.getBoundingClientRect(),d=window.devicePixelRatio||1;s.width=Math.max(1,r.width*d);s.height=Math.max(1,r.height*d);
+  const c=s.getContext('2d');c.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height,k=s.dataset.k;
+  const saveW=W,saveH=H,saveSC=SC,saveB=B;W=w;H=h;SC=2;B=0;let t;
+  if(k==='alpha'){t={kind:'alpha',w:3.6,pts:[[w*0.12,h/2],[w*0.5,h*0.45]]};}
+  else if(k==='muon'){t={kind:'muon',w:1.5,pts:[[0,h*0.75],[w,h*0.25]]};}
+  else{const pts=[[w*0.05,h/2]];let x=w*0.05,y=h/2,th=0;const L=k==='beta'?w*0.9:w*0.35,st=k==='beta'?3:2;for(let s2=0;s2<L;s2+=st){th+=gauss()*(k==='beta'?0.35:0.8);th*=0.85;x+=Math.cos(th)*st;y=Math.max(4,Math.min(h-4,y+Math.sin(th)*st));pts.push([x,y]);}
+    if(k==='compton'){pts.forEach(p=>p[0]+=w*0.3);}t={kind:'electron',w:1.1,dash:true,pts};}
+  strokeT(c,t);W=saveW;H=saveH;SC=saveSC;B=saveB;});}
+swatches();
 
-/* ---------- step 1: precessing nucleus ---------- */
-let pts=[],tNuc=0,alpha=0,phi=0;
-function rng(seed){let s=seed>>>0||1;return ()=>{s^=s<<13;s>>>=0;s^=s>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
-function buildGeom(){const A=S.Z+S.N,Z=S.Z,R=Math.ceil(Math.cbrt(A))+3,c=[];const r=rng(A*131+Z*7+3);
- for(let i=-R;i<=R;i++)for(let j=-R;j<=R;j++)for(let k=-R;k<=R;k++){if((i+j+k)%2)continue;const p=[i*Math.SQRT2+.13,j*Math.SQRT2+.07,k*Math.SQRT2+.11];p.d=Math.hypot(...p)+r()*.05;c.push(p);}
- c.sort((a,b)=>a.d-b.d);const sel=c.slice(0,A);let m=[0,0,0];sel.forEach(p=>{m[0]+=p[0];m[1]+=p[1];m[2]+=p[2];});m=m.map(v=>v/A);
- const idx=sel.map((_,i)=>i);for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
- pts=sel.map(p=>({x:p[0]-m[0],y:p[1]-m[1],z:p[2]-m[2],p:false}));idx.slice(0,Z).forEach(i=>pts[i].p=true);}
-function drawNucleus(dt){const o=sizeCanvas($("nucCanvas"));if(!o)return;const {g,w,h:H}=o,v=spinVals(),hasSpin=!v.zero;
- const gam=v.g||(hasSpin?20:0);const sgn=gam>=0?1:-1;
- if(!reduce){tNuc+=dt;alpha+=dt*2.2;}
- let th,ph;
- if(!hasSpin){th=0;ph=tNuc*.3;}
- else if(S.field){th=0.55;if(!reduce)phi+=dt*2*Math.PI*(0.12+0.5*Math.min(1,Math.abs(gam)/GH))*-sgn;ph=phi;}
- else{th=1.3+0.9*Math.sin(tNuc*0.31);ph=tNuc*0.47+1.7*Math.sin(tNuc*0.23);}
- const cx=w/2,cy=H*0.56,unit=Math.min(w,H);const A=S.Z+S.N,Rn=1.105*Math.cbrt(Math.max(A,1))+1;const s=Math.min(unit*0.17/Rn,26);
- const el=0.32,ce=Math.cos(el),se=Math.sin(el),vaz=-0.5,ca=Math.cos(vaz),sa=Math.sin(vaz);
- const P=(x,y,z)=>{const X=x*ca-y*sa,Y=x*sa+y*ca;return [cx+X,cy-(z*ce-Y*se),z*se+Y*ce];};
- const ct=Math.cos(th),st=Math.sin(th),cp=Math.cos(ph),sp=Math.sin(ph),cal=Math.cos(alpha),sal=Math.sin(alpha);
- const rot=(x,y,z)=>{let x1=x*cal-y*sal,y1=x*sal+y*cal,z1=z;let x2=x1*ct+z1*st,z2=-x1*st+z1*ct,y2=y1;return [x2*cp-y2*sp,x2*sp+y2*cp,z2];};
- const L=unit*0.36;const axis=[st*cp,st*sp,ct];
- const mut=css("--label2"),blue=css("--blue"),pc=css("--red"),nc=css("--gray");
- if(S.field&&hasSpin){ // B0 arrow + cone
-  arrow(g,26,H-24,26,30,mut,2.5);g.fillStyle=mut;g.font="600 14px "+FF();g.fillText("B₀",36,40);
-  g.strokeStyle=css("--label3");g.lineWidth=1.2;g.setLineDash([4,5]);g.beginPath();for(let i=0;i<=72;i++){const a=i/72*Math.PI*2,p=P(L*st*Math.cos(a),L*st*Math.sin(a),L*ct);i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]);}g.stroke();
-  const z0=P(0,0,0),zt=P(0,0,L*1.15);g.beginPath();g.moveTo(z0[0],z0[1]);g.lineTo(zt[0],zt[1]);g.stroke();g.setLineDash([]);}
- if(!S.field&&hasSpin){g.fillStyle=mut;g.font="13px "+FF();g.fillText("ไม่มีสนาม: แกนสปินชี้ทิศสุ่ม",14,24);}
- const tip=P(axis[0]*L,axis[1]*L,axis[2]*L),back=P(-axis[0]*L*.35,-axis[1]*L*.35,-axis[2]*L*.35);
- const proj=pts.map(q=>{const r=rot(q.x*s,q.y*s,q.z*s);const p=P(r[0],r[1],r[2]);return {X:p[0],Y:p[1],d:p[2],p:q.p};}).sort((a,b)=>a.d-b.d);
- const tipFront=P(axis[0],axis[1],axis[2])[2]>0;
- if(hasSpin&&!tipFront){arrow(g,back[0],back[1],tip[0],tip[1],blue,4);}
- proj.forEach(q=>{const rr=s*0.98;const grd=g.createRadialGradient(q.X-rr*.35,q.Y-rr*.4,rr*.1,q.X,q.Y,rr);const col=q.p?pc:nc;
-  grd.addColorStop(0,"rgba(255,255,255,.9)");grd.addColorStop(.3,col);grd.addColorStop(1,col);g.fillStyle=grd;g.beginPath();g.arc(q.X,q.Y,rr,0,Math.PI*2);g.fill();});
- if(hasSpin&&tipFront){arrow(g,back[0],back[1],tip[0],tip[1],blue,4);}
- if(hasSpin){g.fillStyle=blue;g.font="600 13px "+FF();g.fillText("I = "+iLabel(v.I||0.5),tip[0]+10,tip[1]);}
- else{g.fillStyle=mut;g.font="13px "+FF();g.textAlign="center";g.fillText("I = 0 ไม่มีสปินสุทธิ จึงไม่หมุนควง",w/2,26);g.textAlign="left";}
- g.fillStyle=mut;g.font="12px "+FF();g.fillText(`${S.Z} โปรตอน · ${S.N} นิวตรอน`,14,H-12);}
-function nucCaption(){const v=spinVals();
- $("nucCap").innerHTML=v.zero?"นิวเคลียสนี้มีสปินเป็นศูนย์ ไม่ตอบสนองต่อสนามแม่เหล็ก จึงใช้ทำ MRI ไม่ได้":
-  S.field?"ในสนาม B₀ แกนสปิน (ลูกศร) <b>หมุนควง</b> รอบทิศของสนาม เหมือนลูกข่างที่เอียงหมุนควงรอบแนวดิ่ง ความเร็วจริงคือความถี่ Larmor หลายล้านรอบต่อวินาที ในภาพชะลอลงมาก":
-  "ไม่มีสนาม แกนสปินชี้ไปทิศใดก็ได้และเปลี่ยนไปเรื่อยๆ ลองกด \"ในสนาม B₀\"";}
-const setField=f=>{S.field=f;$("fOn").setAttribute("aria-pressed",String(f));$("fOff").setAttribute("aria-pressed",String(!f));nucCaption();};
-$("fOn").addEventListener("click",()=>setField(true));$("fOff").addEventListener("click",()=>setField(false));
-
-/* ---------- step 3 ---------- */
-const FREQ_N=[["¹H",1,0],["¹⁹F",9,10],["³¹P",15,16],["²³Na",11,12],["¹³C",6,7]];
-[0.5,1.5,3,7].forEach(b=>{const c=document.createElement("button");c.type="button";c.textContent=b+" T";c.dataset.b=b;c.addEventListener("click",()=>setB0(b));$("bSeg").appendChild(c);});
-$("b0").addEventListener("input",e=>setB0(+e.target.value));
-function setB0(b){S.B0=b;$("b0").value=b;renderLarmor();renderTable();blochSetup(true);renderVoxelLine();ensHist=[];}
-function renderLarmor(){const v=spinVals(),B=S.B0;$("b0v").textContent=fmt(B,2)+" T";
- document.querySelectorAll("#bSeg button").forEach(c=>c.setAttribute("aria-pressed",String(Math.abs(+c.dataset.b-B)<1e-6)));
- const nm=`${sup(S.Z+S.N)}${sym(S.Z)}`;$("selName").textContent=nm;
- $("dataSrc").innerHTML=v.zero?`${nm} มี I = 0`:v.missing?`ยังไม่มีค่า μ ของ ${nm} ในแบบจำลอง เปิด <a href="https://nds.iaea.org/livechart" target="_blank" rel="noopener">LiveChart</a> แล้วพิมพ์ค่า I และ μ`:`ใช้ค่าอ้างอิงของ ${nm} แก้ได้ถ้าต้องการ`;
- $("gam").textContent=v.g?fmt(v.g,2):(v.zero?"0":"—");$("freq").textContent=v.g?fmt(Math.abs(v.g)*B,2)+" MHz":(v.zero?"ไม่มี (I = 0)":"ใส่ค่า μ");
- drawFreq();renderZee();nucCaption();}
-function drawFreq(){const o=sizeCanvas($("freqCanvas"));if(!o)return;const {g,w,h:H}=o,B=S.B0,fmax=Math.max(150,Math.ceil(GH*B*1.12/50)*50),L=18,R=30,X=f=>L+f/fmax*(w-L-R),y=H-34;
- const mut=css("--label2"),blue=css("--blue");g.fillStyle=css("--fill");g.fillRect(X(88),14,X(108)-X(88),y-14);g.fillStyle=mut;g.font="11px "+FF();g.textAlign="center";g.fillText("วิทยุ FM",X(98),26);
- g.strokeStyle=css("--label3");g.lineWidth=1;g.beginPath();g.moveTo(L,y);g.lineTo(w-R,y);g.stroke();
- for(let f=0;f<=fmax;f+=50){g.beginPath();g.moveTo(X(f),y);g.lineTo(X(f),y+4);g.stroke();g.fillText(String(f),X(f),y+17);}g.textAlign="right";g.fillText("MHz",w-4,y+17);g.textAlign="center";
- const v=spinVals();const items=FREQ_N.map(([n,z,nn])=>{const d=DATA[z+"-"+nn];return {n,f:7.6226*Math.abs(d.mu)/parseI(d.I)*B,sel:z===S.Z&&nn===S.N};});
- if(v.g&&!items.some(i=>i.sel))items.push({n:sup(S.Z+S.N)+sym(S.Z),f:Math.abs(v.g)*B,sel:true});
- items.sort((a,b)=>a.f-b.f).forEach((it,i)=>{const x=X(it.f),yy=y-12-(i%4)*20;g.strokeStyle=it.sel?blue:mut;g.lineWidth=it.sel?2.5:1.2;g.beginPath();g.moveTo(x,y);g.lineTo(x,yy);g.stroke();
-  g.fillStyle=it.sel?blue:mut;g.font=(it.sel?"600 ":"")+"12px "+FF();g.fillText(it.n,x,yy-4);});g.textAlign="left";}
-function renderZee(){const v=spinVals(),B=S.B0;const yc=125;let s="";
- const t=(x,y,str,anchor,col)=>`<text x="${x}" y="${y}" text-anchor="${anchor||"start"}"${col?` style="fill:${col}"`:""}>${str}</text>`;
- s+=`<line x1="30" x2="170" y1="${yc}" y2="${yc}" stroke="var(--label)" stroke-width="2.5"/>`+t(100,yc+24,"ไม่มีสนาม","middle")+t(100,yc-12,"พลังงานเท่ากัน","middle");
- if(!v.g){s+=`<line x1="330" x2="470" y1="${yc}" y2="${yc}" stroke="var(--label)" stroke-width="2.5"/>`+t(400,yc-12,v.zero?"I = 0 ไม่แยกระดับ":"ใส่ค่า μ","middle");}
- else{const half=Math.min(90,22+Math.abs(v.g)*B/ (GH*7) *70);const up=v.g>0;
-  [[yc+half,up?"ชี้ตาม B₀ ↑ (พลังงานต่ำ)":"ชี้ตาม B₀ ↑"],[yc-half,up?"ชี้สวน B₀ ↓ (พลังงานสูง)":"ชี้สวน B₀ ↓"]].forEach(([yy,lab],i)=>{
-   s+=`<line x1="170" y1="${yc}" x2="320" y2="${yy}" stroke="var(--label3)" stroke-dasharray="3 4"/><line x1="320" x2="440" y1="${yy}" y2="${yy}" stroke="var(--label)" stroke-width="2.5"/>`+t(448,yy+4,lab.split(" (")[0],"start","var(--label)");});
-  s+=`<line x1="380" x2="380" y1="${yc-half+4}" y2="${yc+half-4}" stroke="var(--blue)" stroke-width="2"/>`+t(388,yc+4,"ΔE ↔ f = "+fmt(Math.abs(v.g)*B,1)+" MHz","start","var(--blue)")+t(380,yc+half+24,"ในสนาม "+fmt(B,1)+" T","middle");
-  if(Math.abs(v.I-0.5)>1e-9)s+=t(280,240,"นิวเคลียสที่ I > 1/2 มี 2I + 1 ระดับ แต่หลักการเดียวกัน","middle");}
- $("zee").innerHTML=s;
- if(!v.g){$("pop").innerHTML="";$("popText").textContent=v.zero?"I = 0 ไม่มีส่วนเกิน จึงไม่มี M":"";return;}
- const x=h*Math.abs(v.g)*1e6*B/(2*kB*TBODY),ex=Math.tanh(x),lo=5e5*(1+ex),hi=5e5*(1-ex),diff=lo-hi;
- $("pop").innerHTML=[["ชี้ตาม ↑",lo,"--blue"],["ชี้สวน ↓",hi,"--gray"]].map(([n,p,c])=>`<div class="poprow"><span>${n}</span><span class="bar"><span style="width:${(p/1e6*100*1.9).toFixed(3)}%;background:var(${c})"></span></span><span class="c">${fmt(p,1)}</span></div>`).join("")+
-  `<div class="poprow"><span>ส่วนเกิน</span><span class="bar"><span style="width:${Math.min(100,diff/500*100).toFixed(2)}%;background:var(--red)"></span></span><span class="c">${fmt(diff,1)}</span></div>`;
- $("popText").innerHTML=`ในนิวเคลียสหนึ่งล้านตัว ชี้ตามมากกว่าชี้สวนเพียง <b>${fmt(diff,1)} ตัว</b> เพราะพลังงานความร้อนในร่างกายมากกว่าช่องว่างพลังงานนี้ราวแสนเท่า (แถบส่วนเกินขยายสเกล 2,000 เท่า)`;}
-["spinI","mu"].forEach(id=>$(id).addEventListener("input",()=>{renderLarmor();renderTable();blochSetup(true);}));
-
-/* ensemble */
-const EN=1000,ECOLS=40;const ens=new Int8Array(EN);for(let i=0;i<EN;i++)ens[i]=Math.random()<.5?1:-1;let ensBig=false,ensAcc=0,ensHist=[];
-function epsH(){return Math.tanh(h*GH*1e6*S.B0/(2*kB*TBODY));}
-function ensTick(dt){ensAcc+=dt;if(ensAcc<0.12)return;ensAcc=0;const eps=epsH(),e=Math.min(.9,eps*(ensBig?1e5:1)),pu=.5*(1+e);
- for(let i=0;i<EN;i++)if(Math.random()<.25)ens[i]=Math.random()<pu?1:-1;let up=0;for(let i=0;i<EN;i++)if(ens[i]>0)up++;
- ensHist.push(up-(EN-up));if(ensHist.length>80)ensHist.shift();const avg=ensHist.reduce((a,b)=>a+b,0)/ensHist.length;
- $("ensUD").textContent=up+" / "+(EN-up);$("ensAvg").textContent=(avg>=0?"+":"−")+fmt(Math.abs(avg),1);
- const exp=EN*Math.min(.9,eps*(ensBig?1e5:1));
- $("ensText").innerHTML=ensBig?`ขยายผลสนาม 100,000 เท่า: คาดว่าชี้ตามมากกว่าราว ${fmt(exp,0)} ตัว จึงเห็นชัดว่าสนามดึงไปทางไหน`:
-  `สเกลจริง (¹H ที่ ${fmt(S.B0,1)} T): ส่วนเกินที่คาดไว้มีเพียง ${fmt(exp,4)} ตัวใน 1,000 ตัว ตัวเลขที่แกว่งเกิดจากความร้อนล้วนๆ ต้องมีโปรตอนราว ${fmt(Math.round(1/eps/1000)*1000,0)} ตัวจึงได้ส่วนเกิน 1 ตัว`;
- drawEns();}
-function drawEns(){const o=sizeCanvas($("ensCanvas"));if(!o)return;const {g,w,h:H}=o,rows=EN/ECOLS,cw=(w-44)/ECOLS,ch=(H-14)/rows,b=css("--blue"),gr=css("--gray");
- g.lineWidth=1.4;g.lineCap="round";for(let i=0;i<EN;i++){const c=i%ECOLS,r=Math.floor(i/ECOLS),x=38+c*cw+cw/2,y=7+r*ch+ch/2,L=ch*.38,u=ens[i]>0;g.strokeStyle=u?b:gr;g.fillStyle=g.strokeStyle;
-  g.beginPath();g.moveTo(x,y+(u?L:-L));g.lineTo(x,y+(u?-L:L));g.stroke();const t=y+(u?-L:L);g.beginPath();g.moveTo(x,t+(u?-2:2));g.lineTo(x-2.6,t+(u?2:-2));g.lineTo(x+2.6,t+(u?2:-2));g.fill();}
- arrow(g,16,H-14,16,18,css("--label2"),2);g.fillStyle=css("--label2");g.font="600 12px "+FF();g.fillText("B₀",8,H/2+50);}
-const setEns=x=>{ensBig=x;ensHist=[];$("eReal").setAttribute("aria-pressed",String(!x));$("eBig").setAttribute("aria-pressed",String(x));};
-$("eReal").addEventListener("click",()=>setEns(false));$("eBig").addEventListener("click",()=>setEns(true));
-function renderVoxelLine(){const nH=5*1e-3*0.75/18.015*2*6.02214e23;$("vxN").innerHTML=sci(nH);$("vxE").innerHTML=sci(nH*epsH());}
-
-/* ---------- step 4: resonance ---------- */
-const W1=(Math.PI/2)/0.8; // visual nutation rate: 90° in 0.8 s
-let M={x:0,y:0,z:1},pulse=null,phiLab=0,sig=[],simT=0,az=-0.6,BP=null;
-function f0(){const v=spinVals();return v.g?Math.abs(v.g)*S.B0:null;}
-function rfMax(){return Math.max(150,Math.ceil(GH*S.B0*1.15/10)*10);}
-function blochSetup(resetRF){const v=spinVals(),fm=rfMax();$("rf").max=fm;
- if(resetRF){const f=f0();$("rf").value=f?Math.round(f*10)/10:Math.round(GH*S.B0*10)/10;}
- BP={ok:!!v.g,f0:f0(),sgn:(v.g||1)>=0?1:-1};$("rfv").textContent=fmt(+$("rf").value,1)+" MHz";
- const caps=$("rfCaps");caps.innerHTML="";const add=(lab,f)=>{const b=document.createElement("button");b.type="button";b.textContent=lab;b.addEventListener("click",()=>{$("rf").value=Math.round(f*10)/10;rfChanged();});caps.appendChild(b);};
- if(BP.f0)add("ตรง Larmor ของ "+sup(S.Z+S.N)+sym(S.Z)+" ("+fmt(BP.f0,1)+")",BP.f0);if(!(S.Z===1&&S.N===0))add("ความถี่ของ ¹H ("+fmt(GH*S.B0,1)+")",GH*S.B0);
- ["btn90","btn180"].forEach(id=>$(id).disabled=!BP.ok);blochReset();drawRes();}
-function rfChanged(){$("rfv").textContent=fmt(+$("rf").value,1)+" MHz";drawRes();}
-$("rf").addEventListener("input",rfChanged);
-function blochReset(){M={x:0,y:0,z:BP&&BP.ok?1:0};pulse=null;sig=[];simT=0;
- $("blochMsg").innerHTML=BP&&BP.ok?"M ชี้ตาม B₀ อยู่นิ่งๆ ยังไม่มีส่วนที่หมุนในระนาบ xy จึงยังไม่มีสัญญาณ":(spinVals().zero?"นิวเคลียสนี้มี I = 0 ไม่มี M ให้พลิก":"ใส่ค่า μ ในขั้นที่ 3 ก่อน");}
-function delta(){return (BP.f0-(+$("rf").value))*W1;} // 1 MHz offset ~ W1 (visually broadened)
-function flipAt(df){const D=df*W1,Om=Math.hypot(W1,D),nz=D/Om,ang=Om*0.8;const mz=nz*nz+(1-nz*nz)*Math.cos(ang);return Math.sqrt(Math.max(0,1-mz*mz));}
-function rotv(v,ax,ay,az_,th){const n=Math.hypot(ax,ay,az_);if(n<1e-12)return;const kx=ax/n,ky=ay/n,kz=az_/n,c=Math.cos(th),s=Math.sin(th),d=kx*v.x+ky*v.y+kz*v.z,
- cx=ky*v.z-kz*v.y,cy=kz*v.x-kx*v.z,cz=kx*v.y-ky*v.x;v.x=v.x*c+cx*s+kx*d*(1-c);v.y=v.y*c+cy*s+ky*d*(1-c);v.z=v.z*c+cz*s+kz*d*(1-c);}
-function blochStep(dt){if(!BP||!BP.ok)return;const sub=8,hh=dt/sub;
- for(let k=0;k<sub;k++){const on=pulse&&pulse.left>0,D=delta(),w1=on?W1:0;rotv(M,w1,0,D,-Math.hypot(w1,D)*hh);
-  if(!on){const e2=Math.exp(-hh/2.5),e1=Math.exp(-hh/6);M.x*=e2;M.y*=e2;M.z=1+(M.z-1)*e1;}
-  if(on){pulse.left-=hh;if(pulse.left<=0){pulse=null;afterPulse();}}
-  phiLab+=-BP.sgn*2*Math.PI*0.7*hh;simT+=hh;}
- const sx=M.x*Math.cos(phiLab)-M.y*Math.sin(phiLab);sig.push([simT,sx,Math.hypot(M.x,M.y),!!pulse]);while(sig.length&&sig[0][0]<simT-8)sig.shift();}
-function sendPulse(deg){if(!BP.ok)return;pulse={left:deg*Math.PI/180/W1,deg};$("blochMsg").innerHTML=`กำลังส่ง RF ${deg}° ที่ ${fmt(+$("rf").value,1)} MHz …`;}
-function afterPulse(){const tilt=Math.acos(Math.max(-1,Math.min(1,M.z/Math.max(1e-9,Math.hypot(M.x,M.y,M.z)))))*180/Math.PI,off=Math.abs(BP.f0-(+$("rf").value));let m;
- if(off>2&&tilt<20)m=`<b>ไม่สั่นพ้อง</b> M เอียงเพียง ${fmt(tilt,0)}° เพราะ RF ${fmt(+$("rf").value,1)} MHz ไม่ตรงกับความถี่ Larmor ${fmt(BP.f0,1)} MHz จึงแทบไม่มีสัญญาณ`;
- else if(tilt>160)m=`<b>สั่นพ้อง และ M พลิกกลับหัว</b> (${fmt(tilt,0)}°) ชี้สวน B₀ ไม่มีส่วนหมุนในระนาบ xy ขดลวดจึงไม่ได้สัญญาณ แล้ว M จะค่อยๆ ตั้งกลับ`;
- else m=`<b>สั่นพ้อง!</b> M เอียง ${fmt(tilt,0)}° หยุด RF แล้ว M หมุนควงรอบ B₀ และเหนี่ยวนำสัญญาณในขดลวด สัญญาณค่อยๆ จางและ M ค่อยๆ ตั้งกลับ (ขั้นที่ 5)`;
- $("blochMsg").innerHTML=m;}
-$("btn90").addEventListener("click",()=>sendPulse(90));$("btn180").addEventListener("click",()=>sendPulse(180));$("btnReset").addEventListener("click",blochReset);
-(function(){const c=$("bloch");let d=null;c.addEventListener("pointerdown",e=>{d=e.clientX;c.setPointerCapture(e.pointerId);});c.addEventListener("pointermove",e=>{if(d===null)return;az+=(e.clientX-d)*.01;d=e.clientX;});
- const up=()=>{d=null;};c.addEventListener("pointerup",up);c.addEventListener("pointercancel",up);c.addEventListener("keydown",e=>{if(e.key==="ArrowLeft")az-=.1;if(e.key==="ArrowRight")az+=.1;});})();
-function drawBloch(){const o=sizeCanvas($("bloch"));if(!o)return;const {g,w,h:H}=o,S_=Math.min(w,H)*.34,cx=w/2,cy=H*.56,el=.42,ce=Math.cos(el),se=Math.sin(el),ca=Math.cos(az),sa=Math.sin(az);
- const P=(x,y,z)=>{const X=x*ca-y*sa,Y=x*sa+y*ca;return [cx+X*S_,cy-(z*ce-Y*se)*S_];};const mut=css("--label2"),l3=css("--label3"),blue=css("--blue"),red=css("--red");
- g.strokeStyle=l3;g.lineWidth=1;g.beginPath();for(let i=0;i<=64;i++){const a=i/64*Math.PI*2,p=P(Math.cos(a),Math.sin(a),0);i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]);}g.stroke();
- const o0=P(0,0,0);g.setLineDash([3,4]);[[1.2,0,0,"x"],[0,1.2,0,"y"]].forEach(a=>{const p=P(a[0],a[1],a[2]);g.beginPath();g.moveTo(o0[0],o0[1]);g.lineTo(p[0],p[1]);g.stroke();});g.setLineDash([]);
- const bz=P(-1,-1,0),bt=P(-1,-1,1.1);arrow(g,bz[0],bz[1],bt[0],bt[1],mut,2.5);g.fillStyle=mut;g.font="600 14px "+FF();g.fillText("B₀",bt[0]+8,bt[1]+4);
- const coil=P(1.3,0,0);g.strokeStyle=mut;g.lineWidth=1.5;for(let k=0;k<3;k++){g.beginPath();g.ellipse(coil[0]+k*5,coil[1],4,10,0,0,Math.PI*2);g.stroke();}g.font="11px "+FF();g.fillText("ขดลวด",coil[0]-10,coil[1]+24);
- if(!BP||!BP.ok){g.fillStyle=mut;g.font="14px "+FF();g.textAlign="center";g.fillText(spinVals().zero?"I = 0 ไม่มี M":"ใส่ค่า μ ในขั้นที่ 3",cx,28);g.textAlign="left";return;}
- const cp=Math.cos(phiLab),sp=Math.sin(phiLab),Mx=M.x*cp-M.y*sp,My=M.x*sp+M.y*cp;
- if(pulse){const b=P(cp*.8,sp*.8,0);arrow(g,o0[0],o0[1],b[0],b[1],red,2.5);g.fillStyle=red;g.font="600 12px "+FF();g.fillText("RF",b[0]+5,b[1]-5);}
- const pxy=P(Mx,My,0),tp=P(Mx,My,M.z);g.strokeStyle=blue;g.lineWidth=1;g.setLineDash([2,3]);g.beginPath();g.moveTo(o0[0],o0[1]);g.lineTo(pxy[0],pxy[1]);g.lineTo(tp[0],tp[1]);g.stroke();g.setLineDash([]);
- arrow(g,o0[0],o0[1],tp[0],tp[1],blue,5);g.fillStyle=blue;g.font="600 15px "+FF();g.fillText("M",tp[0]+9,tp[1]-6);}
-function drawRes(){const o=sizeCanvas($("resCanvas"));if(!o||!BP)return;const {g,w,h:H}=o,fm=rfMax(),L=16,R=34,X=f=>L+f/fm*(w-L-R),Y=v=>H-26-v*(H-46);const mut=css("--label2"),blue=css("--blue"),red=css("--red");
- g.strokeStyle=css("--label3");g.lineWidth=1;g.beginPath();g.moveTo(L,H-26);g.lineTo(w-R,H-26);g.stroke();g.fillStyle=mut;g.font="11px "+FF();g.textAlign="center";
- for(let f=0;f<=fm;f+=50)g.fillText(String(f),X(f),H-10);g.textAlign="right";g.fillText("MHz",w-2,H-10);g.textAlign="center";
- if(BP.ok){g.strokeStyle=blue;g.lineWidth=2;g.beginPath();for(let i=0;i<=600;i++){const f=fm*i/600;const y=Y(flipAt(BP.f0-f));i?g.lineTo(X(f),y):g.moveTo(X(f),y);}g.stroke();
-  g.fillStyle=blue;g.fillText("Larmor "+fmt(BP.f0,1),X(BP.f0),12);}
- const rf=+$("rf").value;g.strokeStyle=red;g.lineWidth=2;g.beginPath();g.moveTo(X(rf),16);g.lineTo(X(rf),H-26);g.stroke();g.fillStyle=red;g.fillText("RF",X(rf),H-30-((BP.ok&&Math.abs(rf-BP.f0)<8)?0:0));g.textAlign="left";}
-function drawSig(){const o=sizeCanvas($("sigCanvas"));if(!o)return;const {g,w,h:H}=o,t1=simT,t0=t1-8,X=t=>(t-t0)/8*(w-8)+4,Y=v=>H/2-v*(H/2-10);
- g.strokeStyle=css("--sep");g.beginPath();g.moveTo(0,H/2);g.lineTo(w,H/2);g.stroke();
- g.fillStyle=css("--red");sig.forEach(p=>{if(p[3])g.fillRect(X(p[0]),2,2,6);});
- g.strokeStyle=css("--blue");g.lineWidth=1.8;g.beginPath();sig.forEach((p,i)=>{i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1]));});g.stroke();
- g.fillStyle=css("--label2");g.font="11px "+FF();g.fillText("แถบแดง = ช่วงส่ง RF",8,H-6);g.textAlign="right";g.fillText("เวลา →",w-6,H-6);g.textAlign="left";}
-
-/* ---------- step 5: T1/T2 animations ---------- */
-const TIS={fat:{n:"ไขมัน",pd:.9,t1:260,t2:80},bone:{n:"กะโหลก",pd:.05,t1:300,t2:1},csf:{n:"น้ำ (CSF)",pd:1,t1:4000,t2:2000},gm:{n:"เนื้อเทา",pd:.82,t1:950,t2:100},wm:{n:"เนื้อสมอง (เนื้อขาว)",pd:.7,t1:600,t2:80},les:{n:"รอยโรค (บวมน้ำ)",pd:.9,t1:1300,t2:200}};
-const TCOL={fat:"--orange",wm:"--indigo",gm:"--green",csf:"--teal",les:"--pink",bone:"--gray"};
-const CQ=[...Array(9)].map((_,i)=>{const q=(i+.5)/9;return Math.max(-5,Math.min(5,Math.tan(Math.PI*(q-.5))));});
-let aT=0;
-function drawT1(){const o=sizeCanvas($("t1Anim"));if(!o)return;const {g,w,h:H}=o,cyc=7,tt=aT%cyc,frac=Math.min(1,tt/6),tms=frac*4000;
- const items=[["fat",w*.3],["csf",w*.7]],base=H-46,Lm=H-90;g.font="13px "+FF();
- items.forEach(([k,x])=>{const p=TIS[k],mz=1-Math.exp(-tms/p.t1),col=css(TCOL[k]);
-  g.strokeStyle=css("--label3");g.setLineDash([4,4]);g.lineWidth=1.5;g.beginPath();g.moveTo(x,base);g.lineTo(x,base-Lm);g.stroke();g.setLineDash([]);
-  g.strokeStyle=css("--sep");g.beginPath();g.moveTo(x-40,base);g.lineTo(x+40,base);g.stroke();
-  if(mz>0.02)arrow(g,x,base,x,base-Lm*mz,col,6);else{g.fillStyle=col;g.beginPath();g.arc(x,base,4,0,Math.PI*2);g.fill();}
-  g.fillStyle=col;g.textAlign="center";g.font="600 14px "+FF();g.fillText(p.n,x,base+22);g.font="12px "+FF();g.fillStyle=css("--label2");g.fillText("ตั้งกลับแล้ว "+Math.round(mz*100)+"%",x,base+38);});
- g.textAlign="left";g.fillStyle=css("--label2");g.font="12px "+FF();g.fillText("เวลาหลัง RF  "+fmt(tms,0)+" ms",12,20);g.fillText("เส้นประ = ตั้งตรงเต็มที่ (แนว B₀)",12,36);}
-function drawT2(){const o=sizeCanvas($("t2Anim"));if(!o)return;const {g,w,h:H}=o,cyc=7,tt=aT%cyc,frac=Math.min(1,tt/6),tms=frac*300;
- const R=Math.min(w*.2,H*.32),items=[["csf",w*.28],["fat",w*.72]],cy=H*.5;
- items.forEach(([k,cx])=>{const p=TIS[k],col=css(TCOL[k]),base=-Math.PI/2+aT*1.2;
-  g.strokeStyle=css("--sep");g.lineWidth=1;g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.stroke();
-  let sx=0,sy=0;CQ.forEach(c=>{const a=base+c*tms/p.t2;sx+=Math.cos(a);sy+=Math.sin(a);g.fillStyle=col;g.globalAlpha=.85;g.beginPath();g.arc(cx+R*Math.cos(a),cy+R*Math.sin(a),5,0,Math.PI*2);g.fill();g.globalAlpha=1;});
-  const coh=Math.exp(-tms/p.t2),a0=base;arrow(g,cx,cy,cx+R*coh*Math.cos(a0),cy+R*coh*Math.sin(a0),col,4);
-  g.fillStyle=col;g.textAlign="center";g.font="600 14px "+FF();g.fillText(p.n,cx,cy+R+22);g.fillStyle=css("--label2");g.font="12px "+FF();g.fillText("สัญญาณเหลือ "+Math.round(coh*100)+"%",cx,cy+R+38);});
- g.textAlign="left";g.fillStyle=css("--label2");g.font="12px "+FF();g.fillText("เวลาหลัง RF  "+fmt(tms,0)+" ms (มองจากด้านบน)",12,20);}
-
-/* ---------- TR/TE + contrast ---------- */
-const CPRE=[["T1W",500,15],["T2W",4000,100],["PD",3000,15]];
-["cSeg","cSeg2"].forEach(id=>CPRE.forEach(([n,tr,te])=>{const b=document.createElement("button");b.type="button";b.textContent=n;b.dataset.tr=tr;b.dataset.te=te;b.addEventListener("click",()=>{$("tr").value=tr;$("te").value=te;onContrast();});$(id).appendChild(b);}));
-["tr","te"].forEach(id=>$(id).addEventListener("input",onContrast));
-function contrastKind(TR,TE){const sTR=TR<=800,lTR=TR>=2500,sTE=TE<=30,lTE=TE>=80;return sTR&&sTE?"T1W":lTR&&lTE?"T2W":lTR&&sTE?"PD":"ผสม";}
-function onContrast(){const TR=+$("tr").value,TE=+$("te").value;$("trv").textContent=TR+" ms";$("tev").textContent=TE+" ms";const k=contrastKind(TR,TE);
- document.querySelectorAll("#cSeg button,#cSeg2 button").forEach(c=>c.setAttribute("aria-pressed",String(+c.dataset.tr===TR&&+c.dataset.te===TE)));
- $("cText").innerHTML={T1W:"<b>T1W</b> · TR สั้น: เนื้อเยื่อที่ตั้งกลับเร็ว (ไขมัน) พร้อมให้พลิกอีกครั้งจึงสว่าง น้ำตั้งกลับไม่ทันจึงมืด · TE สั้น: ยังไม่ทันเสียจังหวะ",
-  T2W:"<b>T2W</b> · TR ยาว: ทุกเนื้อเยื่อตั้งกลับเกือบเต็ม · TE ยาว: รอให้สัญญาณจาง เนื้อเยื่อที่รักษาจังหวะได้นาน (น้ำ รอยโรคบวมน้ำ) จึงสว่าง",
-  PD:"<b>PD</b> · TR ยาวและ TE สั้น: ตัดผลของ T1 และ T2 ออก ความสว่างขึ้นกับจำนวนโปรตอนเป็นหลัก"}[k]||"<b>ผสม</b> · ผลของ T1 และ T2 ปนกัน ลองเลือก T1W, T2W หรือ PD";
- buildK();kRender();if(rd)rdReset();renderBridge();}
-
-/* ---------- 4-tissue demo ---------- */
-const RDK=["csf","fat","wm","les"];let rd=null;
-function rdBuild(){$("rdGrid").innerHTML=RDK.map(k=>{const p=TIS[k];return `<div class="rdcard" id="rc-${k}"><div class="rdh"><b><span style="color:var(${TCOL[k]})">●</span> ${p.n}</b><span>T1 ${p.t1} · T2 ${p.t2} ms</span></div>
- <canvas class="rd3d" id="r3-${k}"></canvas>
- <div class="mbar"><span>ตั้ง</span><span class="bar"><span id="rbz-${k}" style="background:var(${TCOL[k]})"></span></span><span class="v" id="rvz-${k}">—</span></div>
- <div class="mbar"><span>สัญญาณ</span><span class="bar"><span id="rbx-${k}" style="background:var(${TCOL[k]})"></span></span><span class="v" id="rvx-${k}">—</span></div>
- <canvas class="rdsig" id="rs-${k}"></canvas>
- <div class="rdpix"><span class="px" id="rp-${k}"></span><span>ความสว่างในภาพ<br><b class="mono" id="rpv-${k}">ยังไม่ได้วัด</b></span></div></div>`;}).join("");}
-function rdReset(){const keep=rd?rd.play:true;rd={play:keep,phase:"tip",tip:0,t:0,n:1,phi:0,cap:{},got:false,mz0:{},sig:{}};RDK.forEach(k=>{rd.mz0[k]=TIS[k].pd;rd.sig[k]=[];});
- RDK.forEach(k=>{$("rpv-"+k).textContent="ยังไม่ได้วัด";$("rp-"+k).style.background="#000";});$("rdPlay").textContent=rd.play?"หยุด":"เล่นต่อ";}
-const rdW=()=>{const TR=+$("tr").value,TE=+$("te").value;return Math.min(TR,Math.max(2*TE,120));};
-function rdVals(k){const p=TIS[k],m0=rd.mz0[k];if(rd.phase==="tip"){const th=Math.PI/2*(1-Math.cos(Math.PI*rd.tip))/2;return {mz:m0*Math.cos(th),mxy:m0*Math.sin(th)};}
- return {mz:p.pd*(1-Math.exp(-rd.t/p.t1)),mxy:m0*Math.exp(-rd.t/p.t2)};}
-function rdStep(dt){if(!rd||!rd.play)return;const TR=+$("tr").value,TE=+$("te").value,W=rdW();rd.phi+=dt*2*Math.PI*.7;
- if(rd.phase==="tip"){rd.tip+=dt/.7;if(rd.tip>=1){rd.phase="relax";rd.t=0;rd.got=false;RDK.forEach(k=>rd.sig[k]=[]);}return;}
- const rate=rd.t<W?W/2.8:Math.max(TR-W,1)/3;rd.t=Math.min(TR,rd.t+rate*dt);
- RDK.forEach(k=>{if(rd.t<=W){const v=rdVals(k);rd.sig[k].push([rd.t,v.mxy*Math.cos(rd.phi),v.mxy]);}});
- if(!rd.got&&rd.t>=TE){rd.got=true;RDK.forEach(k=>{const val=rd.mz0[k]*Math.exp(-TE/TIS[k].t2);rd.cap[k]=val;const gv=Math.round(Math.min(1,val)*255);
-  $("rp-"+k).style.background=`rgb(${gv},${gv},${gv})`;$("rpv-"+k).textContent=fmt(val,2)+(rd.n===1?" (รอบแรก)":"");const c=$("rc-"+k);c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),600);});}
- if(rd.t>=TR){RDK.forEach(k=>{rd.mz0[k]=rdVals(k).mz;});rd.phase="tip";rd.tip=0;rd.n++;}}
-function rdMsg(){const TR=+$("tr").value,TE=+$("te").value,W=rdW();const order=f=>RDK.slice().sort((a,b)=>f(b)-f(a)).map(x=>TIS[x].n).join(" > ");let m;
- if(rd.phase==="tip")m=`<b>RF 90° รอบที่ ${rd.n}</b> พลิก M ทุกเนื้อเยื่อลงพร้อมกัน`+(rd.n>1?` แต่ M ยาวไม่เท่ากัน เพราะตั้งกลับมาได้ไม่เท่ากันในรอบก่อน`:` รอบแรกทุกเนื้อเยื่อเริ่มจาก M เต็ม`);
- else if(rd.t<TE)m=`<b>รอวัดที่ TE</b> สัญญาณค่อยๆ จางตาม T2 จุดสีกระจายออก = เสียจังหวะ`;
- else if(rd.t<W)m=`<b>วัดแล้วที่ TE = ${TE} ms</b> สว่างมากไปน้อย: ${order(k=>rd.cap[k]||0)}`;
- else m=`<b>รอจนถึง TR = ${TR} ms</b> M ค่อยๆ ตั้งกลับตาม T1 ไขมันเร็วสุด น้ำช้าสุด แล้วจะโดน RF อีกครั้ง`;
- if($("rdMsg").innerHTML!==m)$("rdMsg").innerHTML=m;$("rdClock").textContent=rd.phase==="tip"?`รอบที่ ${rd.n} · กำลังส่ง RF`:`รอบที่ ${rd.n} · เวลาจริง ${fmt(rd.t,0)} / ${TR} ms`+(rd.t<W?" · สโลว์โมชัน":" · เร่ง");}
-function rdTimeline(){const o=sizeCanvas($("rdTimeline"));if(!o)return;const {g,w,h:H}=o,TR=+$("tr").value,TE=+$("te").value,W=rdW(),L=16,R=16,sp=w-L-R,split=L+sp*.5,gap=10;
- const X=t=>t<=W?L+t/W*(split-L):split+gap+(t-W)/Math.max(TR-W,1)*(L+sp-split-gap),y=H-24,mut=css("--label2"),red=css("--red");
- g.fillStyle=css("--blue-t");g.fillRect(L,6,split-L,y-6);g.fillStyle=mut;g.font="11px "+FF();g.textAlign="center";g.fillText("สโลว์โมชัน",(L+split)/2,18);g.fillText("เร่ง",(split+gap+L+sp)/2,18);
- g.strokeStyle=mut;g.lineWidth=1.5;g.beginPath();g.moveTo(L,y);g.lineTo(split,y);g.moveTo(split+gap,y);g.lineTo(L+sp,y);g.stroke();
- g.fillStyle=red;g.fillRect(X(0)-3,y-28,6,28);g.fillRect(X(TR)-4,y-28,6,28);
- g.strokeStyle=css("--label");g.setLineDash([3,3]);g.beginPath();g.moveTo(X(TE),8);g.lineTo(X(TE),y);g.stroke();g.setLineDash([]);
- g.fillStyle=css("--label");g.fillText("TE",X(TE),y+15);g.fillStyle=red;g.fillText("RF",X(0)+2,y+15);g.textAlign="right";g.fillText("RF (TR)",L+sp,y+15);g.textAlign="left";
- const px=rd.phase==="tip"?X(0):X(rd.t);g.strokeStyle=css("--blue");g.lineWidth=3;g.beginPath();g.moveTo(px,6);g.lineTo(px,y+3);g.stroke();}
-function rdDraw(){if(!rd)return;rdTimeline();rdMsg();const TE=+$("te").value,W=rdW(),l3=css("--label3");
- RDK.forEach(k=>{const col=css(TCOL[k]),v=rdVals(k),p=TIS[k];
-  $("rbz-"+k).style.width=(Math.max(0,v.mz)*100).toFixed(1)+"%";$("rbx-"+k).style.width=(Math.max(0,v.mxy)*100).toFixed(1)+"%";$("rvz-"+k).textContent=fmt(v.mz,2);$("rvx-"+k).textContent=fmt(v.mxy,2);
-  let o=sizeCanvas($("r3-"+k),"--card");if(o){const {g,w,h:H}=o,S_=Math.min(w,H)*.36,cx=w/2,cy=H*.6,el=.45,ce=Math.cos(el),se=Math.sin(el),a=-.6,ca=Math.cos(a),sa=Math.sin(a);
-   const P=(x,y,z)=>{const X=x*ca-y*sa,Y=x*sa+y*ca;return [cx+X*S_,cy-(z*ce-Y*se)*S_];};
-   g.strokeStyle=l3;g.lineWidth=1;g.beginPath();for(let i=0;i<=48;i++){const q=i/48*Math.PI*2,pp=P(Math.cos(q),Math.sin(q),0);i?g.lineTo(pp[0],pp[1]):g.moveTo(pp[0],pp[1]);}g.stroke();
-   const o0=P(0,0,0),zt=P(0,0,1.2);g.setLineDash([3,3]);g.beginPath();g.moveTo(o0[0],o0[1]);g.lineTo(zt[0],zt[1]);g.stroke();g.setLineDash([]);g.fillStyle=css("--label2");g.font="11px "+FF();g.fillText("B₀",zt[0]+4,zt[1]+4);
-   const ph=rd.phase==="tip"?0:rd.phi;
-   if(rd.phase==="relax"){const m0=rd.mz0[k];CQ.forEach(c=>{const an=ph+c*rd.t/p.t2,q=P(m0*Math.cos(an),m0*Math.sin(an),v.mz);g.fillStyle=col;g.globalAlpha=.5;g.beginPath();g.arc(q[0],q[1],3,0,Math.PI*2);g.fill();g.globalAlpha=1;});}
-   const t=P(v.mxy*Math.cos(ph),v.mxy*Math.sin(ph),v.mz);arrow(g,o0[0],o0[1],t[0],t[1],col,4);
-   if(rd.phase==="tip"){g.fillStyle=css("--red");g.font="600 12px "+FF();g.fillText("RF",8,16);}}
-  o=sizeCanvas($("rs-"+k),"--card");if(o){const {g,w,h:H}=o,X=t=>4+t/W*(w-8),Y=s=>H/2-s*(H/2-4);g.strokeStyle=css("--sep");g.beginPath();g.moveTo(0,H/2);g.lineTo(w,H/2);g.stroke();
-   g.strokeStyle=css("--label");g.setLineDash([3,3]);g.beginPath();g.moveTo(X(TE),0);g.lineTo(X(TE),H);g.stroke();g.setLineDash([]);
-   g.strokeStyle=col;g.lineWidth=1.4;g.beginPath();rd.sig[k].forEach((q,i)=>{i?g.lineTo(X(q[0]),Y(q[1])):g.moveTo(X(q[0]),Y(q[1]));});g.stroke();
-   if(rd.got&&rd.cap[k]!==undefined){g.fillStyle=col;g.beginPath();g.arc(X(TE),Y(rd.cap[k]),3.5,0,Math.PI*2);g.fill();}
-   g.fillStyle=css("--label2");g.font="10px "+FF();g.fillText("TE",X(TE)+3,10);}});}
-$("rdPlay").addEventListener("click",()=>{rd.play=!rd.play;$("rdPlay").textContent=rd.play?"หยุด":"เล่นต่อ";});$("rdReset").addEventListener("click",rdReset);
-
-/* ---------- step 6: imaging ---------- */
-function fft(re,im,inv){const n=re.length;for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t;}}
- for(let len=2;len<=n;len<<=1){const ang=2*Math.PI/len*(inv?1:-1),wr=Math.cos(ang),wi=Math.sin(ang),hl=len>>1;
-  for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let k=0;k<hl;k++){const a=i+k,b=a+hl,tr=re[b]*cr-im[b]*ci,ti=re[b]*ci+im[b]*cr;re[b]=re[a]-tr;im[b]=im[a]-ti;re[a]+=tr;im[a]+=ti;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t;}}}
- if(inv)for(let i=0;i<n;i++){re[i]/=n;im[i]/=n;}}
-function fft2(Re,Im,n,inv){const r=new Float64Array(n),q=new Float64Array(n);
- for(let y=0;y<n;y++){for(let x=0;x<n;x++){r[x]=Re[y*n+x];q[x]=Im[y*n+x];}fft(r,q,inv);for(let x=0;x<n;x++){Re[y*n+x]=r[x];Im[y*n+x]=q[x];}}
- for(let x=0;x<n;x++){for(let y=0;y<n;y++){r[y]=Re[y*n+x];q[y]=Im[y*n+x];}fft(r,q,inv);for(let y=0;y<n;y++){Re[y*n+x]=r[y];Im[y*n+x]=q[y];}}}
-const TUBES=[{x:-6,w:1.5,n:"A"},{x:.5,w:3,n:"B"},{x:5.5,w:1,n:"C"}],GN=1024,GT=4e-3,T2S=1.5e-3,FOV=10;let GS=null;
-[0,1,5,10,20].forEach(v=>{const c=document.createElement("button");c.type="button";c.textContent=v+(v===20?" mT/m":"");c.dataset.g=v;c.addEventListener("click",()=>{$("grad").value=v;gradCompute();});$("gSeg").appendChild(c);});
-$("grad").addEventListener("input",gradCompute);
-function gradCompute(){const G=+$("grad").value;$("gradv").textContent=fmt(G,1)+" mT/m";document.querySelectorAll("#gSeg button").forEach(c=>c.setAttribute("aria-pressed",String(+c.dataset.g===G)));
- const fs=[];TUBES.forEach(t=>{for(let k=0;k<200;k++){const x=(t.x-t.w/2+t.w*(k+.5)/200)/100;fs.push(42577*G*x);}});
- const re=new Float64Array(GN),im=new Float64Array(GN),dt=GT/GN;for(let i=0;i<GN;i++){const t=i*dt,e=Math.exp(-t/T2S);let a=0,b=0;for(const f of fs){const p=2*Math.PI*f*t;a+=Math.cos(p);b+=Math.sin(p);}re[i]=a*e/fs.length;im[i]=b*e/fs.length;}
- const fid=Float64Array.from(re);fft(re,im,false);const mag=new Float64Array(GN),fr=new Float64Array(GN);for(let k=0;k<GN;k++){const s=(k+GN/2)%GN;mag[k]=Math.hypot(re[s],im[s]);fr[k]=(k-GN/2)/GT;}
- GS={G,fid,mag,fr,fmax:G>0?42577*G*FOV/100:5000};
- $("gradMsg").innerHTML=G===0?"ไม่มีเกรเดียนต์: ทุกท่ออยู่ในสนามเท่ากัน ความถี่เดียวกัน สเปกตรัมมียอดเดียว <b>บอกไม่ได้ว่าน้ำอยู่ตรงไหน</b>":"แต่ละท่อมีความถี่ต่างกันตามตำแหน่ง สเปกตรัมจึงแยกเป็น 3 ยอด ตำแหน่งยอดบอกตำแหน่งท่อ ความกว้างยอดบอกขนาดท่อ";drawGradAll();}
-function drawGradAll(){if(!GS)return;drawGrad();drawFid();drawSpec();}
-function drawGrad(){const o=sizeCanvas($("gradCanvas"));if(!o)return;const {g,w,h:H}=o,L=44,R=44,X=x=>L+(x+FOV)/(2*FOV)*(w-L-R),mut=css("--label2"),blue=css("--blue"),teal=css("--teal");g.font="11px "+FF();
- for(let x=-9;x<=9;x+=1.5){const len=26*(1+GS.G/20*x/10*.9);arrow(g,X(x),78,X(x),78-len,blue,2);}
- g.fillStyle=mut;g.fillText(GS.G>0?"สนามอ่อนกว่า":"สนามเท่ากันทุกจุด",L,16);if(GS.G>0){g.textAlign="right";g.fillText("สนามแรงกว่า",w-R,16);g.textAlign="left";}
- TUBES.forEach(t=>{const x0=X(t.x-t.w/2),x1=X(t.x+t.w/2);g.fillStyle=teal;g.globalAlpha=.3;g.fillRect(x0,96,x1-x0,46);g.globalAlpha=1;g.strokeStyle=teal;g.lineWidth=1.5;g.strokeRect(x0,96,x1-x0,46);
-  g.fillStyle=css("--label");g.textAlign="center";g.font="600 13px "+FF();g.fillText(t.n,(x0+x1)/2,124);g.font="11px "+FF();const df=42.577*GS.G*t.x/100;g.fillStyle=mut;g.fillText((df>=0?"+":"−")+fmt(Math.abs(df),1)+" kHz",(x0+x1)/2,158);g.textAlign="left";});
- g.strokeStyle=mut;g.lineWidth=1;g.beginPath();g.moveTo(L,172);g.lineTo(w-R,172);g.stroke();g.fillStyle=mut;g.textAlign="center";for(let x=-10;x<=10;x+=5)g.fillText(x+" cm",X(x),190);g.textAlign="left";}
-function drawFid(){const o=sizeCanvas($("fidCanvas"));if(!o)return;const {g,w,h:H}=o,f=GS.fid,show=Math.floor(f.length*.6);g.strokeStyle=css("--sep");g.beginPath();g.moveTo(0,H/2);g.lineTo(w,H/2);g.stroke();
- g.strokeStyle=css("--blue");g.lineWidth=1.3;g.beginPath();for(let i=0;i<show;i++){const x=6+i/(show-1)*(w-12),y=H/2-f[i]*(H/2-12);i?g.lineTo(x,y):g.moveTo(x,y);}g.stroke();}
-function drawSpec(){const o=sizeCanvas($("specCanvas"));if(!o)return;const {g,w,h:H}=o,L=44,R=44,X=f=>L+(f+GS.fmax)/(2*GS.fmax)*(w-L-R),mut=css("--label2"),teal=css("--teal");let mx=0;
- for(let k=0;k<GS.mag.length;k++)if(Math.abs(GS.fr[k])<=GS.fmax)mx=Math.max(mx,GS.mag[k]);
- g.fillStyle=teal;g.globalAlpha=.25;g.beginPath();g.moveTo(X(-GS.fmax),H-24);for(let k=0;k<GS.mag.length;k++){const f=GS.fr[k];if(Math.abs(f)>GS.fmax)continue;g.lineTo(X(f),H-24-GS.mag[k]/mx*(H-40));}g.lineTo(X(GS.fmax),H-24);g.closePath();g.fill();g.globalAlpha=1;
- g.strokeStyle=teal;g.lineWidth=1.8;g.beginPath();let st=false;for(let k=0;k<GS.mag.length;k++){const f=GS.fr[k];if(Math.abs(f)>GS.fmax)continue;const x=X(f),y=H-24-GS.mag[k]/mx*(H-40);st?g.lineTo(x,y):g.moveTo(x,y);st=true;}g.stroke();
- g.strokeStyle=mut;g.lineWidth=1;g.beginPath();g.moveTo(L,H-24);g.lineTo(w-R,H-24);g.stroke();g.fillStyle=mut;g.font="11px "+FF();g.textAlign="center";
- for(let i=-2;i<=2;i++){const f=GS.fmax*i/2;g.fillText(GS.G>0?`${i*5} cm`:`${fmt(f/1000,1)} kHz`,X(f),H-8);}g.textAlign="left";}
-
-const IN=128,TK=Object.keys(TIS);
-function tissueAt(u,v){const e=(a,b,cx,cy)=>((u-(cx||0))/a)**2+((v-(cy||0))/b)**2<=1;
- if(!e(.82,.95))return null;if(!e(.78,.91))return "fat";if(!e(.72,.85))return "bone";if(!e(.69,.82))return "csf";
- if(e(.085,.085,.32,.34))return "les";if(e(.06,.2,-.12,-.08)||e(.06,.2,.12,-.08))return "csf";if(!e(.58,.70))return "gm";
- if(e(.08,.13,-.3,.08)||e(.08,.13,.3,.08))return "gm";return "wm";}
-const FR={};TK.forEach(k=>FR[k]=new Float32Array(IN*IN));
-(function(){const ss=3;for(let y=0;y<IN;y++)for(let x=0;x<IN;x++)for(let a=0;a<ss;a++)for(let b=0;b<ss;b++){const u=((x+(a+.5)/ss)/IN)*2-1,v=((y+(b+.5)/ss)/IN)*2-1;const t=tissueAt(u*1.05,v*1.05);if(t)FR[t][y*IN+x]+=1/(ss*ss);}})();
-let KR=null,KI=null,IMAX=1,KMAXL=1,acq=new Uint8Array(IN).fill(1),acqOrder=[],acqPos=IN,acqPlay=false,acqAcc=0,curRow=-1,orderCen=false,reconDirty=true,lastRecon=null,lastID=null,probeXY=null;
-const sigOf=(t,TR,TE)=>{const p=TIS[t];return p.pd*(1-Math.exp(-TR/p.t1))*Math.exp(-TE/p.t2);};
-function buildK(){const TR=+$("tr").value,TE=+$("te").value,sv={};TK.forEach(k=>sv[k]=sigOf(k,TR,TE));const img=new Float64Array(IN*IN);for(let i=0;i<IN*IN;i++){let s=0;for(const k of TK)s+=FR[k][i]*sv[k];img[i]=s;}
- IMAX=Math.max(...img)||1;KR=Float64Array.from(img);KI=new Float64Array(IN*IN);fft2(KR,KI,IN,false);let m=0;for(let i=0;i<IN*IN;i++)m=Math.max(m,Math.hypot(KR[i],KI[i]));KMAXL=Math.log(1+m);
- const sec=TR*IN/1000;$("scanT").textContent=sec>=60?`${Math.floor(sec/60)} นาที ${Math.round(sec%60)} วินาที`:`${fmt(sec,1)} วินาที`;reconDirty=true;}
-function drawK(){const g=$("kCanvas").getContext("2d"),id=g.createImageData(IN,IN);for(let ys=0;ys<IN;ys++){const yu=(ys+IN/2)%IN;for(let xs=0;xs<IN;xs++){const xu=(xs+IN/2)%IN,i=yu*IN+xu;let v=acq[ys]?Math.log(1+Math.hypot(KR[i],KI[i]))/KMAXL:0;v=Math.pow(v,1.3)*255;const o=(ys*IN+xs)*4;id.data[o]=id.data[o+1]=id.data[o+2]=v;id.data[o+3]=255;}}
- g.putImageData(id,0,0);if(curRow>=0&&acqPlay){g.fillStyle="rgba(10,132,255,.95)";g.fillRect(0,curRow,IN,1);}}
-function drawImg(){const Re=new Float64Array(IN*IN),Im=new Float64Array(IN*IN);for(let ys=0;ys<IN;ys++){if(!acq[ys])continue;const yu=(ys+IN/2)%IN;for(let x=0;x<IN;x++){Re[yu*IN+x]=KR[yu*IN+x];Im[yu*IN+x]=KI[yu*IN+x];}}
- fft2(Re,Im,IN,true);const g=$("imgCanvas").getContext("2d"),id=g.createImageData(IN,IN);lastRecon=new Float64Array(IN*IN);
- for(let i=0;i<IN*IN;i++){lastRecon[i]=Math.hypot(Re[i],Im[i]);const v=Math.min(255,lastRecon[i]/IMAX*255);id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v;id.data[i*4+3]=255;}lastID=id;g.putImageData(id,0,0);drawMark();if(probeXY)probeInfo();}
-function drawMark(){if(!probeXY||!lastID)return;const g=$("imgCanvas").getContext("2d");g.putImageData(lastID,0,0);g.strokeStyle="#0A84FF";g.lineWidth=1.2;g.strokeRect(probeXY[0]-2.5,probeXY[1]-2.5,6,6);}
-function probeInfo(){const [x,y]=probeXY,i=y*IN+x,TR=+$("tr").value,TE=+$("te").value;let best=null,bf=0;TK.forEach(k=>{if(FR[k][i]>bf){bf=FR[k][i];best=k;}});const br=lastRecon?lastRecon[i]/IMAX:0;
- if(!best){$("probe").innerHTML=`นอกศีรษะ: ไม่มีโปรตอน จึงไม่มี M และมืด`;return;}const p=TIS[best],z=1-Math.exp(-TR/p.t1),xy=Math.exp(-TE/p.t2);
- $("probe").innerHTML=`<b>${p.n}</b> · ความสว่าง <b>${fmt(br,2)}</b><br><span class="foot">ตั้งกลับทันก่อน RF ครั้งถัดไป ${fmt(z*100,0)}% · สัญญาณยังเหลือตอนวัดที่ TE ${fmt(xy*100,0)}% · ปริมาณโปรตอน ${p.pd.toFixed(2)}</span>`;}
-$("imgCanvas").addEventListener("click",e=>{const r=$("imgCanvas").getBoundingClientRect();probeXY=[Math.min(IN-1,Math.floor((e.clientX-r.left)/r.width*IN)),Math.min(IN-1,Math.floor((e.clientY-r.top)/r.height*IN))];drawMark();probeInfo();});
-function kRender(){drawK();if(reconDirty){drawImg();reconDirty=false;}$("kRows").textContent=acq.reduce((a,b)=>a+b,0)+" / "+IN;}
-function makeOrder(){acqOrder=[];if(orderCen){acqOrder.push(IN/2);for(let d=1;d<=IN/2;d++){if(IN/2-d>=0)acqOrder.push(IN/2-d);if(IN/2+d<IN)acqOrder.push(IN/2+d);}}else for(let i=0;i<IN;i++)acqOrder.push(i);}
-const setAcqBtn=()=>{$("btnAcq").textContent=acqPlay?"หยุด":(acqPos>=IN?"เริ่มเก็บข้อมูล":"เก็บต่อ");};
-$("btnAcq").addEventListener("click",()=>{if(acqPlay)acqPlay=false;else{if(acqPos>=IN){acq.fill(0);makeOrder();acqPos=0;reconDirty=true;}acqPlay=true;}setAcqBtn();kRender();});
-$("btnFill").addEventListener("click",()=>{acq.fill(1);acqPos=IN;acqPlay=false;curRow=-1;reconDirty=true;setAcqBtn();kRender();});
-$("btnClear").addEventListener("click",()=>{acq.fill(0);makeOrder();acqPos=0;acqPlay=false;curRow=-1;reconDirty=true;setAcqBtn();kRender();});
-const setOrder=c=>{orderCen=c;$("oTop").setAttribute("aria-pressed",String(!c));$("oCen").setAttribute("aria-pressed",String(c));if(acqPos<IN){const done=new Set(acqOrder.slice(0,acqPos));makeOrder();acqOrder=acqOrder.filter(r=>done.has(r)).concat(acqOrder.filter(r=>!done.has(r)));}};
-$("oTop").addEventListener("click",()=>setOrder(false));$("oCen").addEventListener("click",()=>setOrder(true));
-function acqStep(dt){if(!acqPlay)return;acqAcc+=dt*32;let ch=false;while(acqAcc>=1&&acqPos<IN){acq[acqOrder[acqPos]]=1;curRow=acqOrder[acqPos];acqPos++;acqAcc-=1;ch=true;}if(acqPos>=IN){acqPlay=false;curRow=-1;setAcqBtn();}if(ch){reconDirty=true;kRender();}}
-
-/* ---------- step 7 table ---------- */
-function renderTable(){$("tblB0").textContent=fmt(S.B0,1);
- const rows=Object.entries(DATA).filter(([k,d])=>d.mu!==undefined).map(([k,d])=>{const [z,n]=k.split("-").map(Number),I=parseI(d.I),g=7.6226*d.mu/I;return {z,n,I,g,d,sens:Math.pow(Math.abs(g)/GH,3)*I*(I+1)/.75*d.ab/99.9885};}).sort((a,b)=>b.sens-a.sens).slice(0,12);
- $("mriTable").querySelector("tbody").innerHTML=rows.map(r=>`<tr tabindex="0" data-z="${r.z}" data-n="${r.n}" class="${r.z===S.Z&&r.n===S.N?"cur":""}"><td><b>${sup(r.z+r.n)}${sym(r.z)}</b></td><td class="mono">${iLabel(r.I)}</td><td class="num mono">${fmt(Math.abs(r.g)*S.B0,1)}</td><td class="num mono">${r.d.ab<.01?sci(r.d.ab):fmt(r.d.ab,r.d.ab<1?3:1)}</td><td class="num mono">${r.sens>=.01?fmt(r.sens,3):sci(r.sens)}</td><td class="foot">${r.d.use||"—"}</td></tr>`).join("");
- $("mriTable").querySelectorAll("tbody tr").forEach(tr=>{const go=()=>{setNuc(+tr.dataset.z,+tr.dataset.n);document.getElementById("s1").scrollIntoView();};tr.addEventListener("click",go);tr.addEventListener("keydown",e=>{if(e.key==="Enter")go();});});}
-
-
-/* ---------- bridge: T1/T2 -> pixel ---------- */
-function renderBridge(){const TR=+$("tr").value,TE=+$("te").value,keys=["fat","wm","gm","les","csf"];
- const rows=keys.map(k=>{const p=TIS[k],z=1-Math.exp(-TR/p.t1),x=Math.exp(-TE/p.t2);return {k,z,x,b:p.pd*z*x};});const mx=Math.max(...rows.map(r=>r.b));
- $("bridgeBody").innerHTML=rows.map(r=>{const gv=Math.round(r.b/mx*255);return `<tr><td><span style="color:var(${TCOL[r.k]})">●</span> ${TIS[r.k].n}</td><td class="num mono">${Math.round(r.z*100)}%</td><td class="num mono">${Math.round(r.x*100)}%</td><td class="num"><span class="sw" style="background:rgb(${gv},${gv},${gv})"></span></td></tr>`;}).join("");
- const order=rows.slice().sort((a,b)=>b.b-a.b).map(r=>TIS[r.k].n);
- const k=contrastKind(TR,TE);$("miniCap").textContent=(k==="ผสม"?"":k+" · ")+"TR "+TR+" · TE "+TE+" ms";
- $("bridgeText").innerHTML=`ด้วย TR ${TR} ms และ TE ${TE} ms: สว่างที่สุดคือ <b>${order[0]}</b> มืดที่สุดคือ <b>${order[order.length-1]}</b> `+
-  (k==="T1W"?"เพราะ TR สั้น ช่อง ① ต่างกันมาก (ตั้งกลับทันไม่เท่ากัน) ส่วนช่อง ② เกือบเท่ากันหมด ภาพจึงถูกกำหนดด้วย T1":k==="T2W"?"เพราะ TR ยาว ช่อง ① เกือบเต็มทุกเนื้อเยื่อ ส่วนช่อง ② ต่างกันมาก ภาพจึงถูกกำหนดด้วย T2":k==="PD"?"ทั้งช่อง ① และ ② เกือบเต็มทุกเนื้อเยื่อ ความต่างที่เหลือมาจากปริมาณโปรตอน":"ช่อง ① และ ② ต่างกันทั้งคู่ ผลของ T1 และ T2 จึงปนกัน");
- const TR_=TR,TE_=TE,sv={};TK.forEach(k=>sv[k]=sigOf(k,TR_,TE_));const g=$("miniImg").getContext("2d"),id=g.createImageData(IN,IN);let m=0;const img=new Float32Array(IN*IN);
- for(let i=0;i<IN*IN;i++){let v=0;for(const t of TK)v+=FR[t][i]*sv[t];img[i]=v;if(v>m)m=v;}for(let i=0;i<IN*IN;i++){const v=img[i]/m*255;id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v;id.data[i*4+3]=255;}g.putImageData(id,0,0);}
-
-/* ---------- lab notebook ---------- */
-const LAB=[
- {title:"เลือกนิวเคลียสที่ใช้ทำ MRI ได้",go:"s1",goT:"ขั้นที่ 1–2",
-  steps:["เปิด \"ในสนาม B₀\" ในขั้นที่ 1 แล้วสร้างนิวเคลียสทีละตัวตามตาราง","ดูว่านิวเคลียสหมุนควงหรือไม่ แล้วดูคู่ ↑↓ ในขั้นที่ 2 ว่ามีตัวไม่มีคู่เหลือหรือไม่","เปิด LiveChart ตรวจค่าสปิน I จริง"],
-  cols:["Z","N","ตัวไม่มีคู่","หมุนควง?","I (LiveChart)"],rows:["¹H","¹²C","¹³C","¹⁶O","¹⁷O","²³Na","³¹P"],
-  note:"สังเกตว่านิวเคลียสที่หมุนควงได้มีอะไรเหมือนกัน เลือก ¹H, ²³Na และ ³¹P ไปใช้ในตอนที่ 2"},
- {title:"วางนิวเคลียสในสนามแม่เหล็ก",go:"s3",goT:"ขั้นที่ 3",
-  steps:["เลือกนิวเคลียสในขั้นที่ 1 แล้วไปขั้นที่ 3","ตั้ง B₀ เป็น 1.5 T และ 3 T อ่านความถี่ Larmor","อ่านส่วนเกินต่อล้านตัวจากแถบด้านล่างของขั้นที่ 3"],
-  cols:["f ที่ 1.5 T (MHz)","f ที่ 3 T (MHz)","ส่วนเกิน ที่ 1.5 T","ส่วนเกิน ที่ 3 T"],rows:["¹H","²³Na","³¹P"],
-  note:"เก็บความถี่ Larmor ของ ¹H ที่ 1.5 T ไว้ ตอนที่ 3 จะต้องใช้ค่านี้"},
- {title:"หาความถี่ที่ทำให้เกิดการสั่นพ้อง",go:"s4",goT:"ขั้นที่ 4",
-  steps:["เลือก ¹H และ B₀ = 1.5 T","ตั้งความถี่ RF ตามตาราง กด \"เริ่มใหม่\" แล้ว \"ส่ง RF 90°\" ทุกครั้ง","อ่านมุมที่ M เอียงจากข้อความใต้ภาพ และดูว่ามีสัญญาณในกราฟหรือไม่","ทำแถวท้ายตารางด้วย ²³Na และ RF 180°"],
-  cols:["M เอียง (องศา)","มีสัญญาณ?"],rows:["RF 30 MHz","RF 55 MHz","RF 62 MHz","RF = Larmor ¹H","RF 66 MHz","RF 75 MHz","RF 100 MHz","²³Na · RF ความถี่ ¹H","²³Na · RF = Larmor ²³Na","¹H · RF 180° ที่ Larmor"],
-  note:"นำมุมที่ได้ไปวาดกราฟมุมเอียงเทียบความถี่ RF ด้วยมือ แล้วเทียบกับกราฟการสั่นพ้องในหน้า"},
- {title:"ดูว่าแต่ละเนื้อเยื่อส่งสัญญาณเท่าไร",go:"s5",goT:"ขั้นที่ 5",
-  steps:["ดูภาพ T1 และ T2 ก่อน แล้วเลือก T1W","ปล่อยการ์ด 4 เนื้อเยื่อเล่นถึงรอบที่ 2 ขึ้นไป อ่านค่าความสว่าง","ทำซ้ำด้วย T2W และ PD และดูตาราง \"T1 และ T2 กลายเป็นสีเทาในภาพได้อย่างไร\" ประกอบ"],
-  cols:["T1W","T2W","PD"],rows:["น้ำ (CSF)","ไขมัน","เนื้อสมอง (เนื้อขาว)","รอยโรค (บวมน้ำ)"],
-  note:"ระบุว่าในแต่ละแบบ เนื้อเยื่อใดสว่างที่สุด และความต่างนั้นมาจาก ① หรือ ② ในตาราง"},
- {title:"สร้างภาพและอ่านภาพ",go:"s6",goT:"ขั้นที่ 6",
-  steps:["ตั้งเกรเดียนต์เป็น 0, 5 และ 10 mT/m นับจำนวนยอดในสเปกตรัม","กด \"ล้าง\" เลือก \"จากกลางออกไป\" กดเก็บข้อมูลแล้วหยุดที่ราว 15 แถว บรรยายภาพ แล้วทำซ้ำแบบ \"บนลงล่าง\"","เติม k-space ให้ครบ แตะภาพที่แต่ละเนื้อเยื่อทั้งแบบ T1W และ T2W อ่านความสว่างและเวลาสแกน"],
-  cols:["T1W","T2W"],rows:["สเปกตรัม: G = 0 (จำนวนยอด)","สเปกตรัม: G = 10 (จำนวนยอด)","15 แถว: จากกลางออกไป","15 แถว: บนลงล่าง","เนื้อขาว","เนื้อเทา","CSF","รอยโรค","ไขมัน","เวลาสแกน"],
-  note:"แถวสเปกตรัมและ 15 แถว ให้บันทึกในช่องแรกช่องเดียว รอยโรคเห็นชัดกว่าในภาพแบบใด เทียบกับผลตอนที่ 4"}];
-const LKEY="nuclab-notebook-v1";let LS={};try{LS=JSON.parse(localStorage.getItem(LKEY)||"{}")||{};}catch(e){LS={};}
-const lsSave=()=>{try{localStorage.setItem(LKEY,JSON.stringify(LS));}catch(e){}};
-function renderLab(){$("labParts").innerHTML=LAB.map((P,pi)=>`<div class="card part"><div class="part-h"><span class="no">ตอนที่ ${pi+1}</span><a href="#${P.go}">ไปที่${P.goT} ›</a></div><h3>${P.title}</h3>
- <ol class="pipe">${P.steps.map(x=>`<li>${x}</li>`).join("")}</ol>
- <div class="tbl"><table><thead><tr><th>บันทึกผล</th>${P.cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>${P.rows.map((r,ri)=>`<tr><td>${r}</td>${P.cols.map((c,ci)=>`<td><input type="text" id="lab-${pi}-${ri}-${ci}" aria-label="${r} ${c}"></td>`).join("")}</tr>`).join("")}</tbody></table></div>
- <p class="foot">${P.note}</p></div>`).join("");
- document.querySelectorAll(".lab input,#labReport").forEach(el=>{if(LS[el.id])el.value=LS[el.id];el.addEventListener("input",()=>{LS[el.id]=el.value;lsSave();});});}
-$("labCopy").addEventListener("click",()=>{let t="การทดลอง: ตามรอยโปรตอน (ห้องทดลองสร้างนิวเคลียส)\n";LAB.forEach((P,pi)=>{t+=`\nตอนที่ ${pi+1} ${P.title}\n`;P.rows.forEach((r,ri)=>{t+=r+": "+P.cols.map((c,ci)=>c+" = "+(($("lab-"+pi+"-"+ri+"-"+ci)||{}).value||"-")).join(" | ")+"\n";});});t+="\nรายงานสรุป\n"+$("labReport").value+"\n";
- const done=()=>{$("labMsg").textContent="คัดลอกแล้ว นำไปวางในงานที่ส่งได้เลย";};
- try{navigator.clipboard.writeText(t).then(done,()=>{$("labReport").focus();$("labMsg").textContent="คัดลอกอัตโนมัติไม่ได้ ให้คัดลอกจากตารางด้วยตนเอง";});}catch(e){$("labMsg").textContent="คัดลอกอัตโนมัติไม่ได้ ให้คัดลอกด้วยตนเอง";}});
-let clearArm=false;$("labClear").addEventListener("click",()=>{if(!clearArm){clearArm=true;$("labClear").textContent="กดอีกครั้งเพื่อยืนยัน";setTimeout(()=>{clearArm=false;$("labClear").textContent="ล้างบันทึก";},3000);return;}
- clearArm=false;LS={};lsSave();document.querySelectorAll(".lab input,#labReport").forEach(el=>el.value="");$("labClear").textContent="ล้างบันทึก";$("labMsg").textContent="ล้างบันทึกแล้ว";});
-/* ---------- nav highlight ---------- */
-const navLinks=[...document.querySelectorAll("#pills a")];
-try{const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){navLinks.forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+e.target.id));const on=navLinks.find(a=>a.classList.contains("on"));if(on){const pl=document.getElementById("pills");const d=on.getBoundingClientRect().left-pl.getBoundingClientRect().left-(pl.clientWidth-on.offsetWidth)/2;pl.scrollBy({left:d,behavior:"smooth"});}}});},{rootMargin:"-40% 0px -55% 0px"});
- document.querySelectorAll("section.step").forEach(s=>io.observe(s));}catch(e){}
-
-/* ---------- loop & init ---------- */
-function onNucleus(){renderNucleus();renderLarmor();renderTable();blochSetup(true);}
-let last=performance.now();
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;aT+=dt;
- drawNucleus(dt);ensTick(dt);blochStep(dt);drawBloch();drawSig();drawT1();drawT2();rdStep(dt);rdDraw();acqStep(dt);requestAnimationFrame(loop);}
-const redraw=()=>{renderLarmor();drawEns();drawRes();drawGradAll();};
-try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",redraw);}catch(e){}
-new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
-let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(redraw,120);});
-renderLab();rdBuild();rdReset();makeOrder();onNucleus();setField(true);renderVoxelLine();gradCompute();onContrast();requestAnimationFrame(loop);
+/* animation */
+function frame(now){
+  const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(!paused){
+    gens().forEach(g=>{if(Math.random()<g.r*dt){const t=g.f();t.age=0;tracks.push(t);n[g.k]++;if(run)run.c[g.k]++;show();}});
+    tracks.forEach(t=>t.age+=dt);tracks=tracks.filter(t=>t.age<2.4);
+    if(run){
+      if(run.cond!==cond()){stopRun();}
+      else{run.t+=dt;setTimer(Math.max(0,run.dur-run.t));
+        if(run.t>=run.dur){const c=run.c,d=run.dur;stopRun();addRow(c,d);}}
+    }
+  }
+  cx.clearRect(0,0,W,H);
+  for(const t of tracks){cx.globalAlpha=t.age<0.15?t.age/0.15:Math.max(0,1-(t.age-0.15)/2.2);strokeT(cx,t);}
+  cx.globalAlpha=1;cx.setLineDash([]);
+  if(src!=='none'){
+    cx.fillStyle='#d08a2c';cx.beginPath();cx.arc(W/2,H/2,5,0,6.2832);cx.fill();
+    if(sh!=='none'){cx.strokeStyle=sh==='paper'?'#e8e2d0':sh==='al'?'#b9c3cc':'#6d7680';cx.lineWidth=sh==='pb'?5:sh==='al'?3:1.5;cx.setLineDash(sh==='paper'?[3,3]:[]);cx.beginPath();cx.arc(W/2,H/2,12,0,6.2832);cx.stroke();cx.setLineDash([]);}
+    cx.fillStyle='#c9d2da';cx.font='12px "IBM Plex Mono", monospace';cx.textAlign='center';cx.fillText(SRCNAME[src]+(sh!=='none'?' + '+SHNAME[sh]:''),W/2,H/2+30);
+  }
+  const e=eff();
+  $('st').textContent=e===0?'ฐานยังไม่เย็นพอ ไม่เกิดชั้นไออิ่มตัวยิ่งยวด':paused?'หยุดชั่วคราว':run?'กำลังนับ…':(e<1?'ชั้นไอบาง รอยเกิดน้อยลง':'ชั้นไออิ่มตัวยิ่งยวดพร้อม');
+  $('bst').textContent=B>0?'B '+B.toFixed(2)+' T ⊗':'';
+  requestAnimationFrame(frame);
+}
+renderTable();drawHist();
+requestAnimationFrame(frame);
 })();
 </script>
 
