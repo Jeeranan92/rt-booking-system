@@ -239,7 +239,7 @@ const $=id=>document.getElementById(id);
 const cv=$('cv'),cx=cv.getContext('2d');
 const COL={alpha:'#eef1f3',electron:'#7fb2e6',muon:'#7fd4b6'};
 let W=0,H=0,SC=2,T=-78,B=0,src='none',sh='none',paused=false,tracks=[],n={a:0,e:0,m:0},last=performance.now();
-function size(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=Math.max(1,r.width*d);cv.height=Math.max(1,r.height*d);cx.setTransform(d,0,0,d,0,0);W=r.width;H=r.height;SC=W/250;}
+function size(){const r=cv.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);cv.width=Math.max(1,r.width*d);cv.height=Math.max(1,r.height*d);cx.setTransform(d,0,0,d,0,0);W=r.width;H=r.height;SC=W/250;}
 size();addEventListener('resize',()=>{size();drawHist();});
 function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(6.2832*v);}
 const SRCNAME={none:'พื้นหลัง',am:'Am-241',sr:'Sr-90',cs:'Cs-137'};
@@ -310,7 +310,7 @@ $('clearBtn').addEventListener('click',()=>{rows=[];renderTable();drawHist();});
 const hc=$('hist'),hx=hc.getContext('2d');
 function tok(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
 function drawHist(){
-  const r=hc.getBoundingClientRect(),d=window.devicePixelRatio||1;hc.width=Math.max(1,r.width*d);hc.height=Math.max(1,r.height*d);hx.setTransform(d,0,0,d,0,0);
+  const r=hc.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);hc.width=Math.max(1,r.width*d);hc.height=Math.max(1,r.height*d);hx.setTransform(d,0,0,d,0,0);
   const w=r.width,h=r.height,key=$('hSel').value,cur=cond();
   const vals=rows.filter(x=>x.cond===cur&&x.dur===DUR).map(x=>x[key]);
   hx.clearRect(0,0,w,h);
@@ -343,7 +343,7 @@ new MutationObserver(drawHist).observe(document.documentElement,{attributes:true
 
 /* swatches */
 function swatches(){document.querySelectorAll('.swatch').forEach(s=>{
-  const r=s.getBoundingClientRect(),d=window.devicePixelRatio||1;s.width=Math.max(1,r.width*d);s.height=Math.max(1,r.height*d);
+  const r=s.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);s.width=Math.max(1,r.width*d);s.height=Math.max(1,r.height*d);
   const c=s.getContext('2d');c.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height,k=s.dataset.k;
   const saveW=W,saveH=H,saveSC=SC,saveB=B;W=w;H=h;SC=2;B=0;let t;
   if(k==='alpha'){t={kind:'alpha',w:3.6,pts:[[w*0.12,h/2],[w*0.5,h*0.45]]};}
@@ -354,7 +354,12 @@ function swatches(){document.querySelectorAll('.swatch').forEach(s=>{
 swatches();
 
 /* animation */
+let onScreen=true;
+if('IntersectionObserver' in window){new IntersectionObserver(es=>{onScreen=es[0].isIntersecting;}).observe(cv);}
+const lastText={};
+function setText(id,t){if(lastText[id]!==t){lastText[id]=t;$(id).textContent=t;}}
 function frame(now){
+  if(!onScreen){last=now;requestAnimationFrame(frame);return;}
   const dt=Math.min(0.05,(now-last)/1000);last=now;
   if(!paused){
     gens().forEach(g=>{if(Math.random()<g.r*dt){const t=g.f();t.age=0;tracks.push(t);n[g.k]++;if(run)run.c[g.k]++;show();}});
@@ -374,8 +379,8 @@ function frame(now){
     cx.fillStyle='#c9d2da';cx.font='12px "IBM Plex Mono", monospace';cx.textAlign='center';cx.fillText(SRCNAME[src]+(sh!=='none'?' + '+SHNAME[sh]:''),W/2,H/2+30);
   }
   const e=eff();
-  $('st').textContent=e===0?'ฐานยังไม่เย็นพอ ไม่เกิดชั้นไออิ่มตัวยิ่งยวด':paused?'หยุดชั่วคราว':run?'กำลังนับ…':(e<1?'ชั้นไอบาง รอยเกิดน้อยลง':'ชั้นไออิ่มตัวยิ่งยวดพร้อม');
-  $('bst').textContent=B>0?'B '+B.toFixed(2)+' T ⊗':'';
+  setText('st', e===0?'ฐานยังไม่เย็นพอ ไม่เกิดชั้นไออิ่มตัวยิ่งยวด':paused?'หยุดชั่วคราว':run?'กำลังนับ…':(e<1?'ชั้นไอบาง รอยเกิดน้อยลง':'ชั้นไออิ่มตัวยิ่งยวดพร้อม'));
+  setText('bst', B>0?'B '+B.toFixed(2)+' T ⊗':'');
   requestAnimationFrame(frame);
 }
 renderTable();drawHist();
