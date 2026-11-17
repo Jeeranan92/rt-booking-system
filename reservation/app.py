@@ -627,7 +627,7 @@ ORAL_ADVISORS   = ["ผศ.ดร.ชญานิษฐ์", "รศ.ดร.ศ�
 ORAL_DAY_START  = "08:40"
 ORAL_DAY_END    = "16:20"
 ORAL_SLOT_MIN   = 20
-ORAL_SHEET_NAME = "oral_exam 515113"           # worksheet แยก ในไฟล์ Google Sheets เดิม
+ORAL_SHEET_NAME = "oral_exam"           # worksheet แยก ในไฟล์ Google Sheets เดิม
 ORAL_FILE       = "oral_bookings.json"  # สำรองเมื่อไม่ได้เชื่อม Google Sheets
 ORAL_COLUMNS    = ["id", "advisor", "date", "slot", "kind", "name", "phone_id",
                    "user_status", "purpose", "status", "created_at"]
@@ -648,7 +648,7 @@ ORAL_SLOTS = _build_oral_slots()
 
 @st.cache_resource(show_spinner=False)
 def get_oral_sheet():
-    """คืน worksheet 'oral_exam (515113)' ในไฟล์ Sheets เดิม (สร้างให้อัตโนมัติถ้ายังไม่มี)"""
+    """คืน worksheet 'oral_exam' ในไฟล์ Sheets เดิม (สร้างให้อัตโนมัติถ้ายังไม่มี)"""
     if not GSHEETS_AVAILABLE:
         return None
     try:
@@ -755,7 +755,7 @@ def make_oral_row(advisor, ds, slot, kind, name="", phone="", ustatus="", purpos
             "user_status": ustatus, "purpose": purpose, "status": ORAL_ACTIVE,
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
-@st.dialog("🎓 จองอาจารย์สอบ Oral (515113)")
+@st.dialog("🎓 จองอาจารย์สอบ Oral")
 def show_oral_day_dialog():
     adv = st.session_state.get("oe_advisor")
     ds  = st.session_state.get("oe_selected_date")
@@ -867,25 +867,6 @@ def show_oral_day_dialog():
         st.session_state.pop("oe_selected_date", None)
         st.rerun()
 
-# ─── บทเรียน 515113 ───────────────────────────────────────────────────────────
-import streamlit.components.v1 as components
-LESSON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lessons")
-LESSONS = [
-    {"key": "cloud_chamber", "icon": "☁️", "title": "Cloud Chamber จำลอง",
-     "file": "cloud_chamber.html", "height": 1700,
-     "desc": "ประกอบชุดเครื่องมือในหัว ปรับอุณหภูมิ ใส่สนามแม่เหล็ก เปลี่ยนแหล่งกำเนิดรังสี แล้วเก็บข้อมูลการนับ"},
-    {"key": "nuclear_lab", "icon": "🧲", "title": "ห้องทดลองสร้างนิวเคลียส",
-     "file": "nuclear_lab.html", "height": 2800,
-     "desc": "ประกอบนิวเคลียส ดูสปินและความถี่ Larmor ส่งคลื่น RF ให้สั่นพ้อง ศึกษา T1 และ T2 ไปจนถึงภาพ MRI"},
-]
-
-def load_lesson_html(filename):
-    path = os.path.join(LESSON_DIR, filename)
-    if not os.path.exists(path):
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
-
 # ─── Session state ─────────────────────────────────────────────────────────────
 today = date.today()
 defaults = {
@@ -969,13 +950,6 @@ with st.sidebar:
         st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>🎓 การสอบ</div>", unsafe_allow_html=True)
         if st.button("🎓  จองอาจารย์สอบ Oral", use_container_width=True, type="secondary", key="nav_จองอาจารย์"):
             st.session_state.page = "จองอาจารย์"; st.rerun()
-
-    if st.session_state.campus == CAMPUSES[0]:
-        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>📚 บทเรียน</div>", unsafe_allow_html=True)
-        if st.button("📚  บทเรียน 515113", use_container_width=True, type="secondary", key="nav_บทเรียน"):
-            st.session_state.lesson_sel = None
-            st.session_state.page = "บทเรียน"; st.rerun()
 
     st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
     st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>📊 ภาพรวม</div>", unsafe_allow_html=True)
@@ -1089,18 +1063,10 @@ if st.session_state.page == "หน้าแรก":
 
     if st.session_state.campus == CAMPUSES[0]:
         st.markdown("""<div style='background:linear-gradient(135deg,#6a1b9a,#8e24aa);border-radius:16px;padding:1.2rem 1.5rem;color:white;margin-bottom:.5rem;box-shadow:0 4px 18px rgba(106,27,154,.3)'>
-            <div style='font-size:1.8rem'>🎓</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>จองอาจารย์สอบ Oral Exam (515113)</div>
+            <div style='font-size:1.8rem'>🎓</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>จองอาจารย์สอบ Oral Exam</div>
             <div style='font-size:.82rem;opacity:.85'>เลือกอาจารย์ผู้สอบ แล้วจองคิวครั้งละ 20 นาที</div></div>""", unsafe_allow_html=True)
-        if st.button("🎓  เข้าหน้าจองอาจารย์สอบ Oral (515113)", use_container_width=True, key="home_oral"):
+        if st.button("🎓  เข้าหน้าจองอาจารย์สอบ Oral", use_container_width=True, key="home_oral"):
             st.session_state.page = "จองอาจารย์"; st.rerun()
-
-    if st.session_state.campus == CAMPUSES[0]:
-        st.markdown("""<div style='background:linear-gradient(135deg,#00695c,#26a69a);border-radius:16px;padding:1.2rem 1.5rem;color:white;margin-bottom:.5rem;box-shadow:0 4px 18px rgba(0,105,92,.3)'>
-            <div style='font-size:1.8rem'>📚</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>บทเรียน 515113</div>
-            <div style='font-size:.82rem;opacity:.85'>Cloud Chamber จำลอง และห้องทดลองสร้างนิวเคลียส</div></div>""", unsafe_allow_html=True)
-        if st.button("📚  เข้าหน้าบทเรียน 515113", use_container_width=True, key="home_lesson"):
-            st.session_state.lesson_sel = None
-            st.session_state.page = "บทเรียน"; st.rerun()
 
     st.divider()
     st.markdown("""<div style='background:#f0f7ff;border-radius:12px;padding:1rem 1.5rem;border:1px solid #bbdefb;font-size:.82rem;color:#1565c0'>
@@ -1628,7 +1594,7 @@ elif st.session_state.page == "ยกเลิกห้อง":
 # PAGE ▸ จองอาจารย์สอบ Oral
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "จองอาจารย์":
-    st.markdown('<div class="sec-title">🎓 จองอาจารย์สอบ Oral Exam (515113)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-title">🎓 จองอาจารย์สอบ Oral Exam</div>', unsafe_allow_html=True)
     if st.session_state.get("oe_flash"):
         st.success(st.session_state.pop("oe_flash"))
     st.markdown(
@@ -1728,34 +1694,6 @@ elif st.session_state.page == "จองอาจารย์":
             "กดที่วันที่ เพื่อจองคิว หรือตั้งเป็นไม่ว่าง</div>",
             unsafe_allow_html=True)
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE ▸ บทเรียน 515113
-# ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "บทเรียน":
-    st.markdown('<div class="sec-title">📚 บทเรียน 515113</div>', unsafe_allow_html=True)
-    cur = st.session_state.get("lesson_sel")
-    if not cur:
-        st.caption("เลือกบทเรียนที่ต้องการ แต่ละบทเปิดในหน้านี้")
-        lcols = st.columns(len(LESSONS))
-        for col, L in zip(lcols, LESSONS):
-            with col:
-                st.markdown(f"<div style='font-size:.85rem;color:#607d8b;min-height:3.2rem'>{L['desc']}</div>",
-                            unsafe_allow_html=True)
-                if st.button(f"{L['icon']}  {L['title']}", key=f"lesson_{L['key']}",
-                             use_container_width=True, type="primary"):
-                    st.session_state.lesson_sel = L["key"]
-                    st.rerun()
-    else:
-        L = next(x for x in LESSONS if x["key"] == cur)
-        if st.button("◀ กลับไปเลือกบทเรียน", key="lesson_back"):
-            st.session_state.lesson_sel = None
-            st.rerun()
-        st.markdown(f"#### {L['icon']} {L['title']}")
-        html = load_lesson_html(L["file"])
-        if html is None:
-            st.error(f"ไม่พบไฟล์บทเรียน: lessons/{L['file']}")
-        else:
-            components.html(html, height=L["height"], scrolling=True)
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ ปฏิทิน
 # ══════════════════════════════════════════════════════════════════════════════
