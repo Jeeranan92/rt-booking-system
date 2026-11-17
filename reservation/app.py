@@ -867,49 +867,9 @@ def show_oral_day_dialog():
         st.session_state.pop("oe_selected_date", None)
         st.rerun()
 
-# ─── บทเรียน 515113 ───────────────────────────────────────────────────────────
-import streamlit.components.v1 as components
-LESSON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lessons")
-LESSONS = [
-    {"key": "cloud_chamber", "icon": "☁️", "title": "Cloud Chamber จำลอง",
-     "file": "cloud_chamber.html", "height": 1700,
-     "desc": "ประกอบชุดเครื่องมือในหัว ปรับอุณหภูมิ ใส่สนามแม่เหล็ก เปลี่ยนแหล่งกำเนิดรังสี แล้วเก็บข้อมูลการนับ"},
-    {"key": "nuclear_lab", "icon": "🧲", "title": "ห้องทดลองสร้างนิวเคลียส",
-     "file": "nuclear_lab.html", "height": 2800,
-     "desc": "ประกอบนิวเคลียส ดูสปินและความถี่ Larmor ส่งคลื่น RF ให้สั่นพ้อง ศึกษา T1 และ T2 ไปจนถึงภาพ MRI"},
-]
-
-# สคริปต์นี้ทำให้ iframe สูงเท่าเนื้อหาจริง จึงไม่มีแถบเลื่อนซ้อน
-# (ไม่งั้นเมาส์/นิ้วจะไปเลื่อนในกรอบ iframe แทนหน้าเว็บ และอาจกระตุก)
-LESSON_FIT_JS = """<script>
-(function(){
-  var fe = window.frameElement;
-  if (!fe) return;
-  var raf = 0;
-  function fit(){
-    raf = 0;
-    var h = Math.ceil(document.body.getBoundingClientRect().height);
-    if (h > 0) fe.style.height = h + 'px';
-  }
-  function queue(){ if (!raf) raf = requestAnimationFrame(fit); }
-  if (window.ResizeObserver) new ResizeObserver(queue).observe(document.body);
-  window.addEventListener('load', queue);
-  queue();
-})();
-</script>"""
-
-def lesson_with_fit(html):
-    i = html.rfind("</body>")
-    if i == -1:
-        return html + LESSON_FIT_JS
-    return html[:i] + LESSON_FIT_JS + html[i:]
-
-def load_lesson_html(filename):
-    path = os.path.join(LESSON_DIR, filename)
-    if not os.path.exists(path):
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+# ลิงก์แอปบทเรียน (lessons-app) ที่ deploy แล้ว ใส่ URL ตรงนี้ เช่น "https://xxx.streamlit.app"
+# ถ้าเว้นว่างไว้ ปุ่มลิงก์จะไม่แสดง
+LESSONS_URL = ""
 
 # ─── Session state ─────────────────────────────────────────────────────────────
 today = date.today()
@@ -995,12 +955,6 @@ with st.sidebar:
         if st.button("🎓  จองอาจารย์สอบ Oral", use_container_width=True, type="secondary", key="nav_จองอาจารย์"):
             st.session_state.page = "จองอาจารย์"; st.rerun()
 
-    if st.session_state.campus == CAMPUSES[0]:
-        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>📚 บทเรียน</div>", unsafe_allow_html=True)
-        if st.button("📚  บทเรียน 515113", use_container_width=True, type="secondary", key="nav_บทเรียน"):
-            st.session_state.lesson_sel = None
-            st.session_state.page = "บทเรียน"; st.rerun()
 
     st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
     st.markdown("<div style='font-size:.72rem;font-weight:700;color:#ffcc02;letter-spacing:1px;padding:4px 0'>📊 ภาพรวม</div>", unsafe_allow_html=True)
@@ -1019,13 +973,9 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-# ─── ปุ่มบทเรียนบนสุด (เปลี่ยนแค่หน้า ไม่แตะข้อมูลการจอง) ───────────────────
-if st.session_state.campus == CAMPUSES[0] and st.session_state.page != "บทเรียน":
-    if st.button("📚  บทเรียน 515113", key="top_lesson_btn", type="primary", use_container_width=True):
-        st.session_state.prev_page = st.session_state.page
-        st.session_state.page = "บทเรียน"
-        st.session_state.lesson_sel = None
-        st.rerun()
+# ─── ลิงก์บทเรียน (เปิดในหน้าต่างใหม่ ไม่อยู่ในแอปจองห้อง) ─────────────────
+if LESSONS_URL and st.session_state.campus == CAMPUSES[0]:
+    st.link_button("📚 บทเรียน 515113", LESSONS_URL, help="เปิดในหน้าต่างใหม่")
 
 # ─── Main header ──────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -1127,13 +1077,6 @@ if st.session_state.page == "หน้าแรก":
         if st.button("🎓  เข้าหน้าจองอาจารย์สอบ Oral (515113)", use_container_width=True, key="home_oral"):
             st.session_state.page = "จองอาจารย์"; st.rerun()
 
-    if st.session_state.campus == CAMPUSES[0]:
-        st.markdown("""<div style='background:linear-gradient(135deg,#00695c,#26a69a);border-radius:16px;padding:1.2rem 1.5rem;color:white;margin-bottom:.5rem;box-shadow:0 4px 18px rgba(0,105,92,.3)'>
-            <div style='font-size:1.8rem'>📚</div><div style='font-family:Prompt;font-weight:700;font-size:1.1rem;margin:.3rem 0'>บทเรียน 515113</div>
-            <div style='font-size:.82rem;opacity:.85'>Cloud Chamber จำลอง และห้องทดลองสร้างนิวเคลียส</div></div>""", unsafe_allow_html=True)
-        if st.button("📚  เข้าหน้าบทเรียน 515113", use_container_width=True, key="home_lesson"):
-            st.session_state.lesson_sel = None
-            st.session_state.page = "บทเรียน"; st.rerun()
 
     st.divider()
     st.markdown("""<div style='background:#f0f7ff;border-radius:12px;padding:1rem 1.5rem;border:1px solid #bbdefb;font-size:.82rem;color:#1565c0'>
@@ -1761,34 +1704,6 @@ elif st.session_state.page == "จองอาจารย์":
             "กดที่วันที่ เพื่อจองคิว หรือตั้งเป็นไม่ว่าง</div>",
             unsafe_allow_html=True)
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE ▸ บทเรียน 515113
-# ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "บทเรียน":
-    st.markdown('<div class="sec-title">📚 บทเรียน 515113</div>', unsafe_allow_html=True)
-    cur = st.session_state.get("lesson_sel")
-    if not cur:
-        st.caption("เลือกบทเรียนที่ต้องการ แต่ละบทเปิดในหน้านี้")
-        lcols = st.columns(len(LESSONS))
-        for col, L in zip(lcols, LESSONS):
-            with col:
-                st.markdown(f"<div style='font-size:.85rem;color:#607d8b;min-height:3.2rem'>{L['desc']}</div>",
-                            unsafe_allow_html=True)
-                if st.button(f"{L['icon']}  {L['title']}", key=f"lesson_{L['key']}",
-                             use_container_width=True, type="primary"):
-                    st.session_state.lesson_sel = L["key"]
-                    st.rerun()
-    else:
-        L = next(x for x in LESSONS if x["key"] == cur)
-        if st.button("◀ กลับไปเลือกบทเรียน", key="lesson_back"):
-            st.session_state.lesson_sel = None
-            st.rerun()
-        st.markdown(f"#### {L['icon']} {L['title']}")
-        html = load_lesson_html(L["file"])
-        if html is None:
-            st.error(f"ไม่พบไฟล์บทเรียน: lessons/{L['file']}")
-        else:
-            components.html(lesson_with_fit(html), height=L["height"], scrolling=True)
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ ปฏิทิน
 # ══════════════════════════════════════════════════════════════════════════════
