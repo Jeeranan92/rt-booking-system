@@ -393,15 +393,15 @@ ol.tasks li small{display:block;color:var(--label2);font-size:.8rem;margin-top:2
       <p>หลัง RF 90° M นอนราบอยู่ในระนาบ xy จากนั้นมีสองเรื่องเกิดพร้อมกัน แต่ละเนื้อเยื่อเร็วไม่เท่ากัน ความต่างนี้ทำให้ภาพ MRI มีสีเทาไม่เท่ากัน</p></div>
     <div class="cols">
       <div class="card">
-        <h3>T1 · M ค่อยๆ ตั้งกลับ</h3>
+        <h3>T1 recovery · M ค่อยๆ ตั้งกลับ</h3>
         <canvas id="t1Anim" aria-label="ภาพเคลื่อนไหว T1"></canvas>
-        <p class="legendline"><span>↑ ลูกศร = M ตามแนว B₀</span><span>┆ เส้นประ = ตั้งตรงเต็มที่</span><span>% = ตั้งกลับมาได้เท่าไรแล้ว</span></p>
+        <p class="legendline"><span>↑ ลูกศร = M ตามแนว B₀</span><span>┆ เส้นประ = ตั้งตรงเต็มที่</span><span>% = T1 recovery</span></p>
         <p class="sub">โปรตอนคืนพลังงานให้โมเลกุลรอบข้าง M จึงค่อยๆ ตั้งกลับไปตามแนว B₀ เหมือนลูกข่างที่ล้มแล้วค่อยๆ ตั้งขึ้น <b>ไขมันตั้งกลับเร็ว น้ำตั้งกลับช้า</b></p>
       </div>
       <div class="card">
-        <h3>T2 · สปินเสียจังหวะ สัญญาณจางหาย</h3>
+        <h3>T2 decay · สปินเสียจังหวะ สัญญาณจางหาย</h3>
         <canvas id="t2Anim" aria-label="ภาพเคลื่อนไหว T2"></canvas>
-        <p class="legendline"><span>● จุด = กลุ่มโปรตอน</span><span>◯ วงกลม = ระนาบ xy มองจากด้านบน</span><span>➚ ลูกศร = ผลรวม (สัญญาณ)</span></p>
+        <p class="legendline"><span>● จุด = กลุ่มโปรตอน</span><span>◯ วงกลม = ระนาบ xy มองจากด้านบน</span><span>➚ ลูกศร = ผลรวม (สัญญาณ)</span><span>% = T2 decay</span></p>
         <p class="sub">ตอนแรกสปินหมุนพร้อมกันเหมือนนักวิ่งที่ออกตัวพร้อมกัน แล้วค่อยๆ วิ่งเร็วไม่เท่ากันจนกระจาย ผลรวม (ลูกศร) จึงสั้นลง สัญญาณจางหาย <b>น้ำรักษาจังหวะได้นาน ไขมันเสียจังหวะเร็ว</b></p>
       </div>
     </div>
@@ -410,8 +410,8 @@ ol.tasks li small{display:block;color:var(--label2);font-size:.8rem;margin-top:2
     <div class="card">
       <h3>TR และ TE: เครื่องเลือกจังหวะการวัด</h3>
       <div class="list">
-        <div class="row"><span class="k"><b>TR</b> เวลาระหว่าง RF แต่ละครั้ง</span><span class="v">ให้เวลา M ตั้งกลับ (T1)</span></div>
-        <div class="row"><span class="k"><b>TE</b> เวลาที่วัดสัญญาณหลัง RF</span><span class="v">ระหว่างรอ สัญญาณจางลง (T2)</span></div>
+        <div class="row"><span class="k"><b>TR</b> เวลาระหว่าง RF แต่ละครั้ง</span><span class="v">ให้เวลาเกิด T1 recovery</span></div>
+        <div class="row"><span class="k"><b>TE</b> เวลาที่วัดสัญญาณหลัง RF</span><span class="v">ระหว่างรอเกิด T2 decay</span></div>
       </div>
       <div class="seg full" id="cSeg" role="group" aria-label="ชนิดภาพ"></div>
       <div class="cols">
@@ -434,9 +434,9 @@ ol.tasks li small{display:block;color:var(--label2);font-size:.8rem;margin-top:2
     <div class="card">
       <h3>T1 และ T2 กลายเป็นสีเทาในภาพได้อย่างไร</h3>
       <p class="sub">ภาพ MRI คือตารางของ voxel ความสว่างของแต่ละพิกเซลคือ <b>ขนาดสัญญาณที่ voxel นั้นส่งออกมาตอนเครื่องวัด (TE)</b> สัญญาณนั้นขึ้นกับคำถามสองข้อ</p>
-      <div class="chain"><span>① ตอนโดน RF ครั้งนี้ M ตั้งกลับมาได้เท่าไร<br><b>T1 ของเนื้อเยื่อ เทียบกับ TR</b></span><b>×</b><span>② ตอนวัด สัญญาณยังเหลือเท่าไร<br><b>T2 ของเนื้อเยื่อ เทียบกับ TE</b></span><b>=</b><span class="res">ความสว่างของพิกเซล</span></div>
+      <div class="chain"><span>① T1 recovery: ตอนโดน RF ครั้งนี้ M ตั้งกลับมาได้เท่าไร<br><b>T1 ของเนื้อเยื่อ เทียบกับ TR</b></span><b>×</b><span>② T2 decay: ตอนวัด สัญญาณยังเหลือเท่าไร<br><b>T2 ของเนื้อเยื่อ เทียบกับ TE</b></span><b>=</b><span class="res">ความสว่างของพิกเซล</span></div>
       <div class="bridge">
-        <div class="tbl"><table><thead><tr><th>เนื้อเยื่อ</th><th class="num">① ตั้งกลับทัน</th><th class="num">② ยังเหลือตอนวัด</th><th class="num">ความสว่าง</th></tr></thead><tbody id="bridgeBody"></tbody></table></div>
+        <div class="tbl"><table><thead><tr><th>เนื้อเยื่อ</th><th class="num">① T1 recovery</th><th class="num">② T2 decay</th><th class="num">ความสว่าง</th></tr></thead><tbody id="bridgeBody"></tbody></table></div>
         <figure style="margin:0;display:flex;flex-direction:column;gap:6px"><canvas id="miniImg" width="128" height="128" aria-label="ภาพสมองจำลองตาม TR และ TE ปัจจุบัน"></canvas><figcaption class="foot" style="text-align:center" id="miniCap">ภาพที่ได้ด้วย TR/TE นี้</figcaption></figure>
       </div>
       <p class="sub" id="bridgeText"></p>
@@ -742,7 +742,7 @@ function sendPulse(deg){if(!BP.ok)return;pulse={left:deg*Math.PI/180/W1,deg};$("
 function afterPulse(){const tilt=Math.acos(Math.max(-1,Math.min(1,M.z/Math.max(1e-9,Math.hypot(M.x,M.y,M.z)))))*180/Math.PI,off=Math.abs(BP.f0-(+$("rf").value));let m;
  if(off>2&&tilt<20)m=`<b>ไม่สั่นพ้อง</b> M เอียงเพียง ${fmt(tilt,0)}° เพราะ RF ${fmt(+$("rf").value,1)} MHz ไม่ตรงกับความถี่ Larmor ${fmt(BP.f0,1)} MHz จึงแทบไม่มีสัญญาณ`;
  else if(tilt>160)m=`<b>สั่นพ้อง และ M พลิกกลับหัว</b> (${fmt(tilt,0)}°) ชี้สวน B₀ ไม่มีส่วนหมุนในระนาบ xy ขดลวดจึงไม่ได้สัญญาณ แล้ว M จะค่อยๆ ตั้งกลับ`;
- else m=`<b>สั่นพ้อง!</b> M เอียง ${fmt(tilt,0)}° หยุด RF แล้ว M หมุนควงรอบ B₀ และเหนี่ยวนำสัญญาณในขดลวด สัญญาณค่อยๆ จางและ M ค่อยๆ ตั้งกลับ (ขั้นที่ 5)`;
+ else m=`<b>สั่นพ้อง!</b> M เอียง ${fmt(tilt,0)}° หยุด RF แล้ว M หมุนควงรอบ B₀ และเหนี่ยวนำสัญญาณในขดลวด สัญญาณค่อยๆ จาง (T2 decay) และ M ค่อยๆ ตั้งกลับ (T1 recovery) (ขั้นที่ 5)`;
  $("blochMsg").innerHTML=m;}
 $("btn90").addEventListener("click",()=>sendPulse(90));$("btn180").addEventListener("click",()=>sendPulse(180));$("btnReset").addEventListener("click",blochReset);
 (function(){const c=$("bloch");let d=null;c.addEventListener("pointerdown",e=>{d=e.clientX;c.setPointerCapture(e.pointerId);});c.addEventListener("pointermove",e=>{if(d===null)return;az+=(e.clientX-d)*.01;d=e.clientX;});
@@ -781,7 +781,7 @@ function drawT1(){const o=sizeCanvas($("t1Anim"));if(!o)return;const {g,w,h:H}=o
   g.strokeStyle=css("--label3");g.setLineDash([4,4]);g.lineWidth=1.5;g.beginPath();g.moveTo(x,base);g.lineTo(x,base-Lm);g.stroke();g.setLineDash([]);
   g.strokeStyle=css("--sep");g.beginPath();g.moveTo(x-40,base);g.lineTo(x+40,base);g.stroke();
   if(mz>0.02)arrow(g,x,base,x,base-Lm*mz,col,6);else{g.fillStyle=col;g.beginPath();g.arc(x,base,4,0,Math.PI*2);g.fill();}
-  g.fillStyle=col;g.textAlign="center";g.font="600 14px "+FF();g.fillText(p.n,x,base+22);g.font="12px "+FF();g.fillStyle=css("--label2");g.fillText("ตั้งกลับแล้ว "+Math.round(mz*100)+"%",x,base+38);});
+  g.fillStyle=col;g.textAlign="center";g.font="600 14px "+FF();g.fillText(p.n,x,base+22);g.font="12px "+FF();g.fillStyle=css("--label2");g.fillText("T1 recovery "+Math.round(mz*100)+"%",x,base+38);});
  g.textAlign="left";g.fillStyle=css("--label2");g.font="12px "+FF();g.fillText("เวลาหลัง RF  "+fmt(tms,0)+" ms",12,20);g.fillText("เส้นประ = ตั้งตรงเต็มที่ (แนว B₀)",12,36);}
 function drawT2(){const o=sizeCanvas($("t2Anim"));if(!o)return;const {g,w,h:H}=o,cyc=7,tt=aT%cyc,frac=Math.min(1,tt/6),tms=frac*300;
  const R=Math.min(w*.2,H*.32),items=[["csf",w*.28],["fat",w*.72]],cy=H*.5;
@@ -789,7 +789,7 @@ function drawT2(){const o=sizeCanvas($("t2Anim"));if(!o)return;const {g,w,h:H}=o
   g.strokeStyle=css("--sep");g.lineWidth=1;g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.stroke();
   let sx=0,sy=0;CQ.forEach(c=>{const a=base+c*tms/p.t2;sx+=Math.cos(a);sy+=Math.sin(a);g.fillStyle=col;g.globalAlpha=.85;g.beginPath();g.arc(cx+R*Math.cos(a),cy+R*Math.sin(a),5,0,Math.PI*2);g.fill();g.globalAlpha=1;});
   const coh=Math.exp(-tms/p.t2),a0=base;arrow(g,cx,cy,cx+R*coh*Math.cos(a0),cy+R*coh*Math.sin(a0),col,4);
-  g.fillStyle=col;g.textAlign="center";g.font="600 14px "+FF();g.fillText(p.n,cx,cy+R+22);g.fillStyle=css("--label2");g.font="12px "+FF();g.fillText("สัญญาณเหลือ "+Math.round(coh*100)+"%",cx,cy+R+38);});
+  g.fillStyle=col;g.textAlign="center";g.font="600 14px "+FF();g.fillText(p.n,cx,cy+R+22);g.fillStyle=css("--label2");g.font="12px "+FF();g.fillText("T2 decay "+Math.round(coh*100)+"%",cx,cy+R+38);});
  g.textAlign="left";g.fillStyle=css("--label2");g.font="12px "+FF();g.fillText("เวลาหลัง RF  "+fmt(tms,0)+" ms (มองจากด้านบน)",12,20);}
 
 /* ---------- TR/TE + contrast ---------- */
@@ -800,7 +800,7 @@ function contrastKind(TR,TE){const sTR=TR<=800,lTR=TR>=2500,sTE=TE<=30,lTE=TE>=8
 function onContrast(){const TR=+$("tr").value,TE=+$("te").value;$("trv").textContent=TR+" ms";$("tev").textContent=TE+" ms";const k=contrastKind(TR,TE);
  document.querySelectorAll("#cSeg button,#cSeg2 button").forEach(c=>c.setAttribute("aria-pressed",String(+c.dataset.tr===TR&&+c.dataset.te===TE)));
  $("cText").innerHTML={T1W:"<b>T1W</b> · TR สั้น: เนื้อเยื่อที่ตั้งกลับเร็ว (ไขมัน) พร้อมให้พลิกอีกครั้งจึงสว่าง น้ำตั้งกลับไม่ทันจึงมืด · TE สั้น: ยังไม่ทันเสียจังหวะ",
-  T2W:"<b>T2W</b> · TR ยาว: ทุกเนื้อเยื่อตั้งกลับเกือบเต็ม · TE ยาว: รอให้สัญญาณจาง เนื้อเยื่อที่รักษาจังหวะได้นาน (น้ำ รอยโรคบวมน้ำ) จึงสว่าง",
+  T2W:"<b>T2W</b> · TR ยาว: ทุกเนื้อเยื่อตั้งกลับเกือบเต็ม · TE ยาว: รอให้เกิด T2 decay เนื้อเยื่อที่รักษาจังหวะได้นาน (น้ำ รอยโรคบวมน้ำ) จึงสว่าง",
   PD:"<b>PD</b> · TR ยาวและ TE สั้น: ตัดผลของ T1 และ T2 ออก ความสว่างขึ้นกับจำนวนโปรตอนเป็นหลัก"}[k]||"<b>ผสม</b> · ผลของ T1 และ T2 ปนกัน ลองเลือก T1W, T2W หรือ PD";
  buildK();kRender();if(rd)rdReset();renderBridge();}
 
@@ -828,7 +828,7 @@ function rdMsg(){const TR=+$("tr").value,TE=+$("te").value,W=rdW();const order=f
  if(rd.phase==="tip")m=`<b>RF 90° รอบที่ ${rd.n}</b> พลิก M ทุกเนื้อเยื่อลงพร้อมกัน`+(rd.n>1?` แต่ M ยาวไม่เท่ากัน เพราะตั้งกลับมาได้ไม่เท่ากันในรอบก่อน`:` รอบแรกทุกเนื้อเยื่อเริ่มจาก M เต็ม`);
  else if(rd.t<TE)m=`<b>รอวัดที่ TE</b> สัญญาณค่อยๆ จางตาม T2 จุดสีกระจายออก = เสียจังหวะ`;
  else if(rd.t<W)m=`<b>วัดแล้วที่ TE = ${TE} ms</b> สว่างมากไปน้อย: ${order(k=>rd.cap[k]||0)}`;
- else m=`<b>รอจนถึง TR = ${TR} ms</b> M ค่อยๆ ตั้งกลับตาม T1 ไขมันเร็วสุด น้ำช้าสุด แล้วจะโดน RF อีกครั้ง`;
+ else m=`<b>รอจนถึง TR = ${TR} ms</b> M ค่อยๆ ตั้งกลับ (T1 recovery) ไขมันเร็วสุด น้ำช้าสุด แล้วจะโดน RF อีกครั้ง`;
  if($("rdMsg").innerHTML!==m)$("rdMsg").innerHTML=m;$("rdClock").textContent=rd.phase==="tip"?`รอบที่ ${rd.n} · กำลังส่ง RF`:`รอบที่ ${rd.n} · เวลาจริง ${fmt(rd.t,0)} / ${TR} ms`+(rd.t<W?" · สโลว์โมชัน":" · เร่ง");}
 function rdTimeline(){const o=sizeCanvas($("rdTimeline"));if(!o)return;const {g,w,h:H}=o,TR=+$("tr").value,TE=+$("te").value,W=rdW(),L=16,R=16,sp=w-L-R,split=L+sp*.5,gap=10;
  const X=t=>t<=W?L+t/W*(split-L):split+gap+(t-W)/Math.max(TR-W,1)*(L+sp-split-gap),y=H-24,mut=css("--label2"),red=css("--red");
@@ -909,7 +909,7 @@ function drawImg(){const Re=new Float64Array(IN*IN),Im=new Float64Array(IN*IN);f
 function drawMark(){if(!probeXY||!lastID)return;const g=$("imgCanvas").getContext("2d");g.putImageData(lastID,0,0);g.strokeStyle="#0A84FF";g.lineWidth=1.2;g.strokeRect(probeXY[0]-2.5,probeXY[1]-2.5,6,6);}
 function probeInfo(){const [x,y]=probeXY,i=y*IN+x,TR=+$("tr").value,TE=+$("te").value;let best=null,bf=0;TK.forEach(k=>{if(FR[k][i]>bf){bf=FR[k][i];best=k;}});const br=lastRecon?lastRecon[i]/IMAX:0;
  if(!best){$("probe").innerHTML=`นอกศีรษะ: ไม่มีโปรตอน จึงไม่มี M และมืด`;return;}const p=TIS[best],z=1-Math.exp(-TR/p.t1),xy=Math.exp(-TE/p.t2);
- $("probe").innerHTML=`<b>${p.n}</b> · ความสว่าง <b>${fmt(br,2)}</b><br><span class="foot">ตั้งกลับทันก่อน RF ครั้งถัดไป ${fmt(z*100,0)}% · สัญญาณยังเหลือตอนวัดที่ TE ${fmt(xy*100,0)}% · ปริมาณโปรตอน ${p.pd.toFixed(2)}</span>`;}
+ $("probe").innerHTML=`<b>${p.n}</b> · ความสว่าง <b>${fmt(br,2)}</b><br><span class="foot">T1 recovery ก่อน RF ครั้งถัดไป ${fmt(z*100,0)}% · T2 decay ที่ TE ${fmt(xy*100,0)}% · ปริมาณโปรตอน ${p.pd.toFixed(2)}</span>`;}
 $("imgCanvas").addEventListener("click",e=>{const r=$("imgCanvas").getBoundingClientRect();probeXY=[Math.min(IN-1,Math.floor((e.clientX-r.left)/r.width*IN)),Math.min(IN-1,Math.floor((e.clientY-r.top)/r.height*IN))];drawMark();probeInfo();});
 function kRender(){drawK();if(reconDirty){drawImg();reconDirty=false;}$("kRows").textContent=acq.reduce((a,b)=>a+b,0)+" / "+IN;}
 function makeOrder(){acqOrder=[];if(orderCen){acqOrder.push(IN/2);for(let d=1;d<=IN/2;d++){if(IN/2-d>=0)acqOrder.push(IN/2-d);if(IN/2+d<IN)acqOrder.push(IN/2+d);}}else for(let i=0;i<IN;i++)acqOrder.push(i);}
@@ -935,7 +935,7 @@ function renderBridge(){const TR=+$("tr").value,TE=+$("te").value,keys=["fat","w
  const order=rows.slice().sort((a,b)=>b.b-a.b).map(r=>TIS[r.k].n);
  const k=contrastKind(TR,TE);$("miniCap").textContent=(k==="ผสม"?"":k+" · ")+"TR "+TR+" · TE "+TE+" ms";
  $("bridgeText").innerHTML=`ด้วย TR ${TR} ms และ TE ${TE} ms: สว่างที่สุดคือ <b>${order[0]}</b> มืดที่สุดคือ <b>${order[order.length-1]}</b> `+
-  (k==="T1W"?"เพราะ TR สั้น ช่อง ① ต่างกันมาก (ตั้งกลับทันไม่เท่ากัน) ส่วนช่อง ② เกือบเท่ากันหมด ภาพจึงถูกกำหนดด้วย T1":k==="T2W"?"เพราะ TR ยาว ช่อง ① เกือบเต็มทุกเนื้อเยื่อ ส่วนช่อง ② ต่างกันมาก ภาพจึงถูกกำหนดด้วย T2":k==="PD"?"ทั้งช่อง ① และ ② เกือบเต็มทุกเนื้อเยื่อ ความต่างที่เหลือมาจากปริมาณโปรตอน":"ช่อง ① และ ② ต่างกันทั้งคู่ ผลของ T1 และ T2 จึงปนกัน");
+  (k==="T1W"?"เพราะ TR สั้น ช่อง ① ต่างกันมาก (T1 recovery ไม่เท่ากัน) ส่วนช่อง ② เกือบเท่ากันหมด ภาพจึงถูกกำหนดด้วย T1":k==="T2W"?"เพราะ TR ยาว ช่อง ① เกือบเต็มทุกเนื้อเยื่อ ส่วนช่อง ② ต่างกันมาก ภาพจึงถูกกำหนดด้วย T2":k==="PD"?"ทั้งช่อง ① และ ② เกือบเต็มทุกเนื้อเยื่อ ความต่างที่เหลือมาจากปริมาณโปรตอน":"ช่อง ① และ ② ต่างกันทั้งคู่ ผลของ T1 และ T2 จึงปนกัน");
  const TR_=TR,TE_=TE,sv={};TK.forEach(k=>sv[k]=sigOf(k,TR_,TE_));const g=$("miniImg").getContext("2d"),id=g.createImageData(IN,IN);let m=0;const img=new Float32Array(IN*IN);
  for(let i=0;i<IN*IN;i++){let v=0;for(const t of TK)v+=FR[t][i]*sv[t];img[i]=v;if(v>m)m=v;}for(let i=0;i<IN*IN;i++){const v=img[i]/m*255;id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v;id.data[i*4+3]=255;}g.putImageData(id,0,0);}
 
