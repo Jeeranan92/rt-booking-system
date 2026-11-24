@@ -405,6 +405,7 @@ def rec_plan(bookings, room, mondays, patterns, qty, today):
     return sorted(items, key=lambda x: (x["date"], x["slot"]))
 
 OTHER_EQUIP = "อื่นๆ"
+XRAY_ROOMS = ["ห้องปฏิบัติการ X-Ray : Shimadzu", "ห้องปฏิบัติการ X-Ray : DRGem", "ห้องปฏิบัติการ X-Ray : นวัตกรรม"]
 
 def is_other_item(item):
     return str(item or "").startswith(OTHER_EQUIP + ": ")
@@ -1660,6 +1661,42 @@ elif st.session_state.page == "จองห้อง":
     
                     st.rerun()
 
+        # ── จอง X-ray ทั้ง 3 ห้องพร้อมกัน (ใช้วันและเวลาเดียวกับที่เลือกด้านบน) ──
+        if all(x in current_rooms_list() for x in XRAY_ROOMS):
+            xr_done = st.session_state.pop("xray_result", None)
+            if xr_done:
+                st.success(f"✅ จอง X-ray 3 ห้องพร้อมกันสำเร็จ • {r_date.strftime('%d/%m/%Y')} เวลา {xr_done[0]['ช่วงเวลา']}")
+                st.dataframe(xr_done, hide_index=True)
+            st.markdown("##### 📷 จอง X-ray ทั้ง 3 ห้องพร้อมกัน")
+            st.caption("บันทึกทั้ง 3 ห้องในวันและเวลาที่เลือก ถ้ามีห้องใดไม่ว่าง จะไม่บันทึกทั้งหมด")
+            if st.button("📷 ยืนยันจอง X-ray ทั้ง 3 ห้อง (Shimadzu • DRGem • นวัตกรรม)",
+                         use_container_width=True, key="r_submit_xray", disabled=not rm_end):
+                if not r_name.strip() or not r_phone.strip():
+                    st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทรบุคลากร/รหัสนักศึกษาก่อน")
+                else:
+                    slot_x = f"{rm_start}–{rm_end}"
+                    busy = [x for x in XRAY_ROOMS if is_range_conflict(bookings, x, r_date, r_date, slot_x)]
+                    if busy:
+                        st.error("⛔ ยังไม่ได้บันทึก เพราะห้องต่อไปนี้ไม่ว่างในช่วงเวลานี้: "
+                                 + ", ".join(x.split(" : ")[-1] for x in busy))
+                    else:
+                        now_s = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        ds = r_date.strftime("%Y-%m-%d")
+                        done = []
+                        for x in XRAY_ROOMS:
+                            bid = str(uuid.uuid4())[:8].upper()
+                            save_one_booking({
+                                "id": bid, "name": r_name.strip(), "phone_id": r_phone.strip(),
+                                "user_status": r_status, "purpose": r_purpose, "item": x,
+                                "item_type": "ห้องปฏิบัติการ", "quantity": 1,
+                                "date": ds, "start_date": ds, "end_date": ds, "slot": slot_x,
+                                "borrow_time": now_s, "return_time": None, "status": "ยืมอยู่",
+                                "borrow_image": "", "return_image": None, "notes": "จอง X-ray พร้อมกัน 3 ห้อง",
+                            })
+                            done.append({"ห้อง": x.split(" : ")[-1], "ช่วงเวลา": slot_x, "รหัสการจอง": bid})
+                        st.session_state.bookings = load_bookings()
+                        st.session_state["xray_result"] = done
+                        st.rerun()
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ ยกเลิกห้องปฏิบัติการ
 # ══════════════════════════════════════════════════════════════════════════════
