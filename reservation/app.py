@@ -367,6 +367,43 @@ def room_capacity(room):
     else:
         return 1
 
+# ─── จองห้องแบบประจำทุกสัปดาห์ ──────────────────────────────────────
+SINGLE_MODE = "📅 จองครั้งเดียว"
+REC_MODE    = "🔁 จองประจำทุกสัปดาห์"
+REC_WEEKDAYS = ["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์"]
+WEEKDAY_TH   = REC_WEEKDAYS + ["เสาร์","อาทิตย์"]
+REC_SESSIONS = {"เช้า": ("08:30", "12:00"), "บ่าย": ("13:00", "16:30")}
+REC_PATTERN_OPTIONS = [f"{wd} • {ss}" for wd in REC_WEEKDAYS for ss in REC_SESSIONS]
+
+def toggle_rec_week(mkey):
+    weeks = list(st.session_state.get("rec_weeks", []))
+    if mkey in weeks:
+        weeks.remove(mkey)
+    else:
+        weeks.append(mkey)
+    st.session_state["rec_weeks"] = weeks
+
+def clear_rec_weeks():
+    st.session_state["rec_weeks"] = []
+
+def rec_plan(bookings, room, mondays, patterns, qty, today):
+    """วันที่จะจองประจำ พร้อมสถานะ: ว่าง / ไม่ว่าง / ผ่านแล้ว"""
+    items = []
+    for monday in mondays:
+        for p in patterns:
+            wd_name, ss = p.split(" • ")
+            d = monday + timedelta(days=REC_WEEKDAYS.index(wd_name))
+            s, e = REC_SESSIONS[ss]
+            slot = f"{s}–{e}"
+            if d < today:
+                status = "ผ่านแล้ว"
+            elif count_slot_bookings(bookings, room, d.isoformat(), slot) + qty > room_capacity(room):
+                status = "ไม่ว่าง"
+            else:
+                status = "ว่าง"
+            items.append({"date": d, "slot": slot, "status": status})
+    return sorted(items, key=lambda x: (x["date"], x["slot"]))
+
 def current_equipment_list():
     """คืนรายการอุปกรณ์สำหรับการยืม-คืน (ใช้กับภาควิชารังสีเทคนิคเท่านั้น)"""
     return EQUIPMENT_LIST
@@ -1397,103 +1434,212 @@ elif st.session_state.page == "จองห้อง":
     r_quantity = room_capacity(r_room) if r_full_room else 1
 
     st.divider()
-    st.markdown("##### 📅 วันที่และช่วงเวลา")
-    r_date     = st.date_input("วันที่จอง *", min_value=date.today(), key="r_date")
-    r_date_str = r_date.strftime("%Y-%m-%d")
+    r_mode = st.radio("รูปแบบการจอง *", [SINGLE_MODE, REC_MODE], horizontal=True, key="r_mode")
+    if r_mode == REC_MODE:
+        # ── จองประจำทุกสัปดาห์ ──
+        rec_done = st.session_state.pop("rec_result", None)
+        if rec_done:
+            st.success(f"✅ จองประจำสำเร็จ {len(rec_done)} ครั้ง ห้อง {r_room}")
+            st.dataframe(rec_done, hide_index=True)
 
-    rc1, rc2 = st.columns(2)
-    with rc1: rm_start = st.selectbox("⏰ เวลาเริ่ม *", ALL_STARTS, key="rm_start")
-    valid_r_ends = [e for e in ALL_ENDS if parse_time(e) > parse_time(rm_start)]
-    with rc2:
-        if valid_r_ends:
-            rm_end = st.selectbox("⏰ เวลาสิ้นสุด *", valid_r_ends, key="rm_end")
-        else:
-            st.selectbox("⏰ เวลาสิ้นสุด *", ["—"], key="rm_end", disabled=True)
-            rm_end = None
+        st.markdown("##### 🔁 วันและช่วงเวลาที่ต้องการจองทุกสัปดาห์")
+        rec_patterns = st.multiselect("เลือกได้หลายรายการ *", REC_PATTERN_OPTIONS, key="rec_pattern")
 
-    r_slot = None
-    if rm_end:
-        r_slot = f"{rm_start}–{rm_end}"
-        room_full = is_range_conflict(bookings, r_room, r_date, r_date, r_slot)
+        st.markdown("##### 🗓️ เลือกสัปดาห์จากปฏิทิน")
+        st.caption("กดวันใดก็ได้ในสัปดาห์ เพื่อเลือกหรือยกเลิกทั้งสัปดาห์ (สัปดาห์ที่เลือกจะเป็นสีน้ำเงิน)")
+        today_rec = oral_today()
+        st.session_state.setdefault("rec_year", today_rec.year)
+        st.session_state.setdefault("rec_month", today_rec.month)
+        st.session_state.setdefault("rec_weeks", [])
 
-        if room_full:
-            st.error("⛔ ห้องนี้เต็มในช่วงเวลาที่เลือก กรุณาเลือกเวลาอื่น")
-            r_slot = None
-        else:
-            st.success(f"✅ ช่วงเวลาที่เลือก: {r_slot}")
-
-    st.divider()
-    st.markdown("##### 📷 รูปภาพก่อนเข้าใช้ห้อง (เพิ่มภายหลังได้)")
-    r_imgs = st.file_uploader("อัปโหลดรูปภาพสภาพห้องก่อนเข้าใช้",
-        type=["jpg","jpeg","png","heic","webp"], key="upload_room", accept_multiple_files=True)
-    if r_imgs:
-        cols_r = st.columns(min(len(r_imgs), 4))
-        for i, f in enumerate(r_imgs):
-            with cols_r[i % 4]: st.image(f, caption=f"รูป {i+1}", width=150)
-
-    st.divider()
-
-    col_rb, _ = st.columns([1, 3])
-    
-    with col_rb:
-    
-        r_submit = st.button(
-            "✅ ยืนยันการจองห้อง",
-            type="primary",
-            use_container_width=True,
-            key="r_submit"
-        )
-    
-        if r_submit:
-    
-            if not r_name.strip() or not r_phone.strip():
-    
-                st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษา")
-    
-            elif not r_slot:
-    
-                st.error("ไม่มีช่วงเวลาว่าง กรุณาเลือกวันอื่น")
-    
-            else:
-    
-                bid = str(uuid.uuid4())[:8].upper()
-    
-                img_path = ""
-    
-                if r_imgs:
-    
-                    paths = save_images_multi(bid, r_imgs, "room_borrow")
-                    img_path = paths_to_str(paths)
-    
-                new_bk = {
-                    "id": bid,
-                    "name": r_name.strip(),
-                    "phone_id": r_phone.strip(),
-                    "user_status": r_status,
-                    "purpose": r_purpose,
-                    "item": r_room,
-                    "item_type": "ห้องปฏิบัติการ",
-                    "quantity": r_quantity,
-                    "date": r_date_str,
-                    "start_date": r_date_str,
-                    "end_date": r_date_str,
-                    "slot": r_slot,
-                    "borrow_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "return_time": None,
-                    "status": "ยืมอยู่",
-                    "borrow_image": img_path,
-                    "return_image": None,
-                    "notes": "",
-                }
-    
-                save_one_booking(new_bk)
-    
-                # โหลดข้อมูลล่าสุดจาก Google Sheets ใหม่
-                st.session_state.bookings = load_bookings()
-    
-                st.session_state["confirm_booking"] = new_bk
-    
+        rn1, rn2, rn3 = st.columns([1, 3, 1])
+        with rn1:
+            if st.button("◀ เดือนก่อน", use_container_width=True, key="rec_prev"):
+                if st.session_state.rec_month == 1:
+                    st.session_state.rec_month = 12
+                    st.session_state.rec_year -= 1
+                else:
+                    st.session_state.rec_month -= 1
                 st.rerun()
+        with rn2:
+            st.markdown(
+                f"<h3 style='text-align:center;font-family:Prompt;color:#0d2137;margin:4px 0'>"
+                f"{MONTH_TH[st.session_state.rec_month]} {st.session_state.rec_year + 543}</h3>",
+                unsafe_allow_html=True)
+        with rn3:
+            if st.button("เดือนถัดไป ▶", use_container_width=True, key="rec_next"):
+                if st.session_state.rec_month == 12:
+                    st.session_state.rec_month = 1
+                    st.session_state.rec_year += 1
+                else:
+                    st.session_state.rec_month += 1
+                st.rerun()
+
+        rec_yr, rec_mo = st.session_state.rec_year, st.session_state.rec_month
+        hdr_cols = st.columns(7)
+        for i, wd in enumerate(WEEKDAY_TH):
+            hdr_cols[i].markdown(
+                f"<div style='text-align:center;font-weight:700;font-size:.85rem;"
+                f"color:{'#c62828' if i >= 5 else '#546e7a'};background:#f0f4f8;"
+                f"border-radius:6px;padding:6px 0'>{wd}</div>", unsafe_allow_html=True)
+        for week in calendar.monthcalendar(rec_yr, rec_mo):
+            wcols = st.columns(7)
+            for ci, d in enumerate(week):
+                with wcols[ci]:
+                    if d == 0:
+                        st.markdown("<div style='height:40px'></div>", unsafe_allow_html=True)
+                        continue
+                    d_obj = date(rec_yr, rec_mo, d)
+                    monday = d_obj - timedelta(days=d_obj.weekday())
+                    st.button(str(d), key=f"rec_day_{d_obj.isoformat()}", use_container_width=True,
+                              type="primary" if monday.isoformat() in st.session_state.rec_weeks else "secondary",
+                              disabled=monday + timedelta(days=6) < today_rec,
+                              on_click=toggle_rec_week, args=(monday.isoformat(),))
+
+        rec_sel = sorted(st.session_state.rec_weeks)
+        sc1, sc2 = st.columns([3, 1])
+        with sc1:
+            st.markdown(f"**เลือกแล้ว {len(rec_sel)} สัปดาห์**" if rec_sel else "ยังไม่ได้เลือกสัปดาห์")
+        with sc2:
+            st.button("ล้างการเลือก", use_container_width=True, key="rec_clear",
+                      on_click=clear_rec_weeks, disabled=not rec_sel)
+
+        if not rec_patterns or not rec_sel:
+            st.info("เลือกวัน-ช่วงเวลา และอย่างน้อย 1 สัปดาห์จากปฏิทิน เพื่อดูรายการจอง")
+        else:
+            rec_items = rec_plan(bookings, r_room, [date.fromisoformat(m) for m in rec_sel],
+                                 rec_patterns, r_quantity, today_rec)
+            n_free = sum(1 for x in rec_items if x["status"] == "ว่าง")
+            st.markdown("##### 📋 รายการที่จะจอง")
+            st.dataframe([{"วันที่": f"{WEEKDAY_TH[x['date'].weekday()]} {x['date'].strftime('%d/%m/%Y')}",
+                           "ช่วงเวลา": x["slot"], "สถานะ": x["status"]} for x in rec_items],
+                         hide_index=True)
+            st.caption(f"จะจองได้ {n_free} จาก {len(rec_items)} ครั้ง (ครั้งที่ไม่ว่างหรือผ่านแล้วจะถูกข้าม)")
+
+            if st.button(f"✅ ยืนยันจองประจำ ({n_free} ครั้ง)", type="primary",
+                         use_container_width=True, key="rec_submit", disabled=n_free == 0):
+                if not r_name.strip() or not r_phone.strip():
+                    st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษาในส่วนข้อมูลผู้จองด้านบน")
+                else:
+                    done = []
+                    now_s = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    for x in rec_items:
+                        if x["status"] != "ว่าง":
+                            continue
+                        bid = str(uuid.uuid4())[:8].upper()
+                        ds = x["date"].isoformat()
+                        save_one_booking({
+                            "id": bid, "name": r_name.strip(), "phone_id": r_phone.strip(),
+                            "user_status": r_status, "purpose": r_purpose, "item": r_room,
+                            "item_type": "ห้องปฏิบัติการ", "quantity": r_quantity,
+                            "date": ds, "start_date": ds, "end_date": ds, "slot": x["slot"],
+                            "borrow_time": now_s, "return_time": None, "status": "ยืมอยู่",
+                            "borrow_image": "", "return_image": None, "notes": "จองประจำ",
+                        })
+                        done.append({"วันที่": f"{WEEKDAY_TH[x['date'].weekday()]} {x['date'].strftime('%d/%m/%Y')}",
+                                     "ช่วงเวลา": x["slot"], "รหัสการจอง": bid})
+                    st.session_state.bookings = load_bookings()
+                    st.session_state.rec_weeks = []
+                    st.session_state["rec_result"] = done
+                    st.rerun()
+    else:
+        st.markdown("##### 📅 วันที่และช่วงเวลา")
+        r_date     = st.date_input("วันที่จอง *", min_value=date.today(), key="r_date")
+        r_date_str = r_date.strftime("%Y-%m-%d")
+
+        rc1, rc2 = st.columns(2)
+        with rc1: rm_start = st.selectbox("⏰ เวลาเริ่ม *", ALL_STARTS, key="rm_start")
+        valid_r_ends = [e for e in ALL_ENDS if parse_time(e) > parse_time(rm_start)]
+        with rc2:
+            if valid_r_ends:
+                rm_end = st.selectbox("⏰ เวลาสิ้นสุด *", valid_r_ends, key="rm_end")
+            else:
+                st.selectbox("⏰ เวลาสิ้นสุด *", ["—"], key="rm_end", disabled=True)
+                rm_end = None
+
+        r_slot = None
+        if rm_end:
+            r_slot = f"{rm_start}–{rm_end}"
+            room_full = is_range_conflict(bookings, r_room, r_date, r_date, r_slot)
+
+            if room_full:
+                st.error("⛔ ห้องนี้เต็มในช่วงเวลาที่เลือก กรุณาเลือกเวลาอื่น")
+                r_slot = None
+            else:
+                st.success(f"✅ ช่วงเวลาที่เลือก: {r_slot}")
+
+        st.divider()
+        st.markdown("##### 📷 รูปภาพก่อนเข้าใช้ห้อง (เพิ่มภายหลังได้)")
+        r_imgs = st.file_uploader("อัปโหลดรูปภาพสภาพห้องก่อนเข้าใช้",
+            type=["jpg","jpeg","png","heic","webp"], key="upload_room", accept_multiple_files=True)
+        if r_imgs:
+            cols_r = st.columns(min(len(r_imgs), 4))
+            for i, f in enumerate(r_imgs):
+                with cols_r[i % 4]: st.image(f, caption=f"รูป {i+1}", width=150)
+
+        st.divider()
+
+        col_rb, _ = st.columns([1, 3])
+    
+        with col_rb:
+    
+            r_submit = st.button(
+                "✅ ยืนยันการจองห้อง",
+                type="primary",
+                use_container_width=True,
+                key="r_submit"
+            )
+    
+            if r_submit:
+    
+                if not r_name.strip() or not r_phone.strip():
+    
+                    st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษา")
+    
+                elif not r_slot:
+    
+                    st.error("ไม่มีช่วงเวลาว่าง กรุณาเลือกวันอื่น")
+    
+                else:
+    
+                    bid = str(uuid.uuid4())[:8].upper()
+    
+                    img_path = ""
+    
+                    if r_imgs:
+    
+                        paths = save_images_multi(bid, r_imgs, "room_borrow")
+                        img_path = paths_to_str(paths)
+    
+                    new_bk = {
+                        "id": bid,
+                        "name": r_name.strip(),
+                        "phone_id": r_phone.strip(),
+                        "user_status": r_status,
+                        "purpose": r_purpose,
+                        "item": r_room,
+                        "item_type": "ห้องปฏิบัติการ",
+                        "quantity": r_quantity,
+                        "date": r_date_str,
+                        "start_date": r_date_str,
+                        "end_date": r_date_str,
+                        "slot": r_slot,
+                        "borrow_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "return_time": None,
+                        "status": "ยืมอยู่",
+                        "borrow_image": img_path,
+                        "return_image": None,
+                        "notes": "",
+                    }
+    
+                    save_one_booking(new_bk)
+    
+                    # โหลดข้อมูลล่าสุดจาก Google Sheets ใหม่
+                    st.session_state.bookings = load_bookings()
+    
+                    st.session_state["confirm_booking"] = new_bk
+    
+                    st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ ยกเลิกห้องปฏิบัติการ
