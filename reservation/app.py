@@ -404,6 +404,17 @@ def rec_plan(bookings, room, mondays, patterns, qty, today):
             items.append({"date": d, "slot": slot, "status": status})
     return sorted(items, key=lambda x: (x["date"], x["slot"]))
 
+OTHER_EQUIP = "อื่นๆ"
+
+def is_other_item(item):
+    return str(item or "").startswith(OTHER_EQUIP + ": ")
+
+def equipment_item_name(sel, other_text):
+    return f"{OTHER_EQUIP}: {other_text.strip()}" if sel == OTHER_EQUIP else sel
+
+def is_equipment_item(item):
+    return item in EQUIPMENT_LIST or is_other_item(item)
+
 def current_equipment_list():
     """คืนรายการอุปกรณ์สำหรับการยืม-คืน (ใช้กับภาควิชารังสีเทคนิคเท่านั้น)"""
     return EQUIPMENT_LIST
@@ -1154,12 +1165,20 @@ elif st.session_state.page == "ยืมอุปกรณ์":
     st.divider()
     st.markdown("##### 📦 เลือกอุปกรณ์")
     sel_eq = st.selectbox("เลือกอุปกรณ์ *", current_equipment_list(), key="sel_eq")
+    other_text = ""
+    if sel_eq == OTHER_EQUIP:
+        other_text = st.text_input("✏️ ระบุชื่ออุปกรณ์ที่ยืม (อื่นๆ) *", key="eq_other_name",
+                                   placeholder="เช่น กล่องใส่ฟิล์ม, สายไฟ, อุปกรณ์เฉพาะทาง", max_chars=100)
     qty    = st.number_input("จำนวน", min_value=1, max_value=50, value=1)
     if st.button("✔️ เลือกอุปกรณ์นี้", type="primary", key="confirm_eq"):
-        st.session_state["borrow_item"]      = sel_eq
-        st.session_state["borrow_item_type"] = "อุปกรณ์"
-        st.session_state["borrow_qty"]       = qty
-        st.success(f"เลือกแล้ว: **{sel_eq}** จำนวน {qty} ชิ้น")
+        if sel_eq == OTHER_EQUIP and not other_text.strip():
+            st.error("กรุณาระบุชื่ออุปกรณ์ในช่อง อื่นๆ")
+        else:
+            item_name = equipment_item_name(sel_eq, other_text)
+            st.session_state["borrow_item"]      = item_name
+            st.session_state["borrow_item_type"] = "อุปกรณ์"
+            st.session_state["borrow_qty"]       = qty
+            st.success(f"เลือกแล้ว: **{item_name}** จำนวน {qty} ชิ้น")
 
     chosen      = st.session_state.get("borrow_item")
     chosen_type = st.session_state.get("borrow_item_type", "อุปกรณ์")
@@ -1256,7 +1275,7 @@ elif st.session_state.page == "คืนอุปกรณ์":
 
     # ✅ กรองเฉพาะอุปกรณ์เท่านั้น ไม่รวมห้อง และเฉพาะวิทยาเขตที่เลือกอยู่
     active = [b for b in bookings if b["status"] == "ยืมอยู่" and b.get("item_type") == "อุปกรณ์"
-              and b.get("item") in current_equipment_list()]
+              and is_equipment_item(b.get("item"))]
 
     if not active:
         st.info("✅ ไม่มีรายการที่ยืมอยู่ในขณะนี้")
@@ -1932,7 +1951,8 @@ elif st.session_state.page == "ปฏิทิน":
             return datetime.strptime(x, "%Y-%m-%d").date() if isinstance(x, str) else x
         return sum(1 for b in bookings if
             b.get("status") != "คืนแล้ว" and
-            (fil_item == "ทั้งหมด" or b.get("item") == fil_item) and
+            (fil_item == "ทั้งหมด" or b.get("item") == fil_item
+             or (fil_item == OTHER_EQUIP and is_other_item(b.get("item")))) and
             (lambda s,e: s and e and s <= ds_date <= e)(
                 safe_to_date(b.get("start_date") or b.get("date")),
                 safe_to_date(b.get("end_date") or b.get("date"))))
