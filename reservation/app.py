@@ -1,7 +1,7 @@
 import streamlit as st
 import json
 import os
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time as dt_time, timezone as dt_timezone
 import calendar
 import uuid
 import pandas as pd
@@ -740,20 +740,47 @@ def oral_day_state(rows, advisor, ds):
             blocked.add(str(r.get("slot")))
     return booked, blocked
 
+def oral_bookings_on(rows, ds):
+    """รายการจองที่ยังใช้งานอยู่ของวัน ds เรียงตามลำดับอาจารย์และเวลา"""
+    order = {a: i for i, a in enumerate(ORAL_ADVISORS)}
+    out = [r for r in rows
+           if str(r.get("date")) == ds and r.get("kind") == ORAL_BOOK
+           and r.get("status") != ORAL_CANCELLED]
+    out.sort(key=lambda r: (order.get(r.get("advisor"), 99),
+                            parse_time(str(r.get("slot")).split("–")[0])))
+    return out
+
+ORAL_BKK        = dt_timezone(timedelta(hours=7))   # เวลาไทย (เซิร์ฟเวอร์อาจอยู่คนละเขตเวลา)
+ORAL_CLOSE_DAYS = 2                                  # ปิดจองก่อนวันสอบกี่วัน
+ORAL_CLOSE_TIME = dt_time(22, 0)                     # ปิดเวลา 22:00 น.
+
+def oral_now():
+    return datetime.now(ORAL_BKK).replace(tzinfo=None)
+
+def oral_today():
+    return oral_now().date()
+
+def oral_close_at(d_obj):
+    """เวลาที่ปิดรับจองของวันสอบ d_obj เช่น สอบ 26 พ.ย. ปิด 24 พ.ย. 22:00 น."""
+    return datetime.combine(d_obj - timedelta(days=ORAL_CLOSE_DAYS), ORAL_CLOSE_TIME)
+
+def oral_booking_closed(d_obj):
+    return oral_now() >= oral_close_at(d_obj)
+
 def oral_slot_passed(d_obj, slot):
-    today = date.today()
+    today = oral_today()
     if d_obj < today:
         return True
     if d_obj > today:
         return False
-    now = datetime.now()
+    now = oral_now()
     return parse_time(slot.split("–")[0]) <= now.hour * 60 + now.minute
 
 def make_oral_row(advisor, ds, slot, kind, name="", phone="", ustatus="", purpose=""):
     return {"id": str(uuid.uuid4())[:8].upper(), "advisor": advisor, "date": ds,
             "slot": slot, "kind": kind, "name": name, "phone_id": phone,
             "user_status": ustatus, "purpose": purpose, "status": ORAL_ACTIVE,
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+            "created_at": oral_now().strftime("%Y-%m-%d %H:%M:%S")}
 
 @st.dialog("🎓 จองอาจารย์สอบ Oral (515113)")
 def show_oral_day_dialog():
@@ -763,6 +790,9 @@ def show_oral_day_dialog():
         return
     d_obj = datetime.strptime(ds, "%Y-%m-%d").date()
     st.markdown(f"**🎓 {adv}**  |  📅 {d_obj.strftime('%d/%m/%Y')}")
+    closed = oral_booking_closed(d_obj)
+    if closed:
+        st.warning(f"🔒 ปิดรับจองวันนี้แล้ว (ปิดเมื่อ {oral_close_at(d_obj).strftime('%d/%m/%Y %H:%M')} น.)")
 
     rows = load_oral()
     booked, blocked = oral_day_state(rows, adv, ds)
@@ -815,7 +845,9 @@ def show_oral_day_dialog():
                     horizontal=True, key="oe_mode")
 
     if mode == "📝 ต้องการจอง":
-        if not free:
+        if closed:
+            st.info("ปิดรับจองสำหรับวันนี้แล้ว")
+        elif not free:
             st.info("ไม่มีช่วงเวลาว่างในวันนี้")
         else:
             slot = st.selectbox("⏰ เลือกช่วงเวลา (ครั้งละ 20 นาที) *", free,
@@ -829,7 +861,9 @@ def show_oral_day_dialog():
             o_purpose = st.text_input("หัวข้อ / วัตถุประสงค์", key=f"oe_purpose_{ds}")
             if st.button("✅ ยืนยันการจอง", type="primary", use_container_width=True,
                          key=f"oe_confirm_{ds}"):
-                if not o_name.strip() or not o_phone.strip():
+                if oral_booking_closed(d_obj):
+                    st.error("หมดเวลารับจองของวันนี้แล้ว กรุณาเลือกวันอื่น")
+                elif not o_name.strip() or not o_phone.strip():
                     st.error("กรุณากรอกชื่อ-สกุล และเบอร์โทร/รหัสนักศึกษา")
                 else:
                     # ตรวจซ้ำกับข้อมูลล่าสุดก่อนบันทึก เพื่อกันการจองซ้ำ
@@ -1600,7 +1634,7 @@ elif st.session_state.page == "จองอาจารย์":
     st.markdown(
         f"<div style='font-size:.85rem;color:#607d8b;margin-bottom:.6rem'>"
         f"📅 จันทร์ – ศุกร์ • เวลา {ORAL_SLOTS[0].split('–')[0]}–{ORAL_SLOTS[-1].split('–')[1]} น. "
-        f"• จองได้ครั้งละ {ORAL_SLOT_MIN} นาที • จองซ้ำช่วงเวลาเดิมไม่ได้</div>",
+        f"• จองได้ครั้งละ {ORAL_SLOT_MIN} นาที • จองซ้ำช่วงเวลาเดิมไม่ได้ • ปิดรับจองเวลา 22:00 น. ของ 2 วันก่อนวันสอบ</div>",
         unsafe_allow_html=True)
 
     st.markdown("##### 👩‍🏫 เลือกอาจารย์ผู้สอบ")
@@ -1617,7 +1651,7 @@ elif st.session_state.page == "จองอาจารย์":
     if not adv:
         st.info("👆 กรุณาเลือกอาจารย์ เพื่อดูปฏิทินการจอง")
     else:
-        today_obj = date.today()
+        today_obj = oral_today()
         st.session_state.setdefault("oe_year", today_obj.year)
         st.session_state.setdefault("oe_month", today_obj.month)
         st.divider()
@@ -1676,7 +1710,9 @@ elif st.session_state.page == "จองอาจารย์":
                     free_n = sum(1 for s in ORAL_SLOTS
                                  if s not in booked and s not in blocked
                                  and not oral_slot_passed(d_obj, s))
-                    if free_n == 0:
+                    if oral_booking_closed(d_obj):
+                        cls, txt = "oe-off", "ปิดจอง"
+                    elif free_n == 0:
                         cls, txt = ("oe-off", "ไม่ว่าง") if blocked else ("oe-full", "เต็ม")
                     elif booked or blocked:
                         cls, txt = "oe-part", f"ว่าง {free_n}/{total}"
@@ -1693,6 +1729,24 @@ elif st.session_state.page == "จองอาจารย์":
             "⬜ ไม่ว่างทั้งวัน / ปิดทำการ / ผ่านมาแล้ว<br>"
             "กดที่วันที่ เพื่อจองคิว หรือตั้งเป็นไม่ว่าง</div>",
             unsafe_allow_html=True)
+
+    # ── ตารางรายชื่อผู้จองคิว เลือกวันที่ดูได้ ──
+    st.divider()
+    st.markdown("#### 📋 รายชื่อผู้จองคิว")
+    list_day = st.date_input("📅 เลือกวันที่ต้องการดู", value=oral_today(),
+                             key="oe_list_date", format="DD/MM/YYYY")
+    list_ds = list_day.strftime("%Y-%m-%d")
+    list_rows = oral_bookings_on(load_oral(), list_ds)
+    if not list_rows:
+        st.info(f"ยังไม่มีการจองในวันที่ {list_day.strftime('%d/%m/%Y')}")
+    else:
+        st.caption(f"วันที่ {list_day.strftime('%d/%m/%Y')} • จองแล้ว {len(list_rows)} คิว")
+        st.dataframe([
+            {"เวลา": r.get("slot"), "อาจารย์": r.get("advisor"),
+             "ชื่อ-สกุล": r.get("name"), "สถานะ": r.get("user_status"),
+             "หัวข้อ": r.get("purpose") or "—"}
+            for r in list_rows
+        ], hide_index=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ ปฏิทิน
