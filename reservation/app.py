@@ -635,6 +635,7 @@ ORAL_BOOK       = "จอง"
 ORAL_BLOCK      = "ไม่ว่าง"
 ORAL_ACTIVE     = "ใช้งาน"
 ORAL_CANCELLED  = "ยกเลิก"
+ORAL_ADMIN_PIN  = "2101"   # รหัสแอดมินสำหรับลบการจองคิว
 
 def _build_oral_slots():
     out, t, end = [], parse_time(ORAL_DAY_START), parse_time(ORAL_DAY_END)
@@ -1747,6 +1748,25 @@ elif st.session_state.page == "จองอาจารย์":
              "หัวข้อ": r.get("purpose") or "—"}
             for r in list_rows
         ], hide_index=True)
+
+    with st.expander("🔐 แอดมิน: ลบการจอง (ต้องใช้รหัสแอดมิน)"):
+        if not list_rows:
+            st.caption("ไม่มีการจองให้ลบในวันที่เลือก")
+        else:
+            pick_map = {f"{r.get('slot')} • {r.get('advisor')} • {r.get('name')}": r.get("id")
+                        for r in list_rows}
+            pick = st.selectbox("เลือกการจองที่ต้องการลบ", list(pick_map.keys()),
+                                key="oe_del_pick")
+            admin_pin = st.text_input("รหัสแอดมิน *", type="password", key="oe_del_pin")
+            if st.button("🗑️ ยืนยันลบการจองนี้", type="primary", key="oe_del_go"):
+                if not admin_pin:
+                    st.error("กรุณากรอกรหัสแอดมินก่อนยืนยันลบ")
+                elif admin_pin != ORAL_ADMIN_PIN:
+                    st.error("รหัสแอดมินไม่ถูกต้อง ยังไม่ได้ลบ")
+                elif cancel_oral_rows([pick_map[pick]]):
+                    st.session_state.oe_flash = (
+                        f"🗑️ ลบการจอง {pick} แล้ว (เก็บประวัติเป็นสถานะยกเลิก คิวนี้ว่างให้จองใหม่ได้)")
+                    st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ▸ ปฏิทิน
