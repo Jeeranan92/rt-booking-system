@@ -386,8 +386,8 @@ def toggle_rec_week(mkey):
 def clear_rec_weeks():
     st.session_state["rec_weeks"] = []
 
-def rec_plan(bookings, room, mondays, patterns, qty, today):
-    """วันที่จะจองประจำ พร้อมสถานะ: ว่าง / ไม่ว่าง / ผ่านแล้ว"""
+def rec_plan(bookings, rooms, mondays, patterns, qty, today):
+    """วันที่จะจองประจำ พร้อมสถานะ: ว่าง / ไม่ว่าง / ผ่านแล้ว (ว่างเมื่อทุกห้องในรายการว่าง)"""
     items = []
     for monday in mondays:
         for p in patterns:
@@ -395,13 +395,15 @@ def rec_plan(bookings, room, mondays, patterns, qty, today):
             d = monday + timedelta(days=REC_WEEKDAYS.index(wd_name))
             s, e = REC_SESSIONS[ss]
             slot = f"{s}–{e}"
+            busy = [r for r in rooms
+                    if count_slot_bookings(bookings, r, d.isoformat(), slot) + qty > room_capacity(r)]
             if d < today:
                 status = "ผ่านแล้ว"
-            elif count_slot_bookings(bookings, room, d.isoformat(), slot) + qty > room_capacity(room):
+            elif busy:
                 status = "ไม่ว่าง"
             else:
                 status = "ว่าง"
-            items.append({"date": d, "slot": slot, "status": status})
+            items.append({"date": d, "slot": slot, "status": status, "rooms": list(rooms)})
     return sorted(items, key=lambda x: (x["date"], x["slot"]))
 
 OTHER_EQUIP = "อื่นๆ"
@@ -1464,6 +1466,11 @@ elif st.session_state.page == "จองห้อง":
 
         st.markdown("##### 🔁 วันและช่วงเวลาที่ต้องการจองทุกสัปดาห์")
         rec_patterns = st.multiselect("เลือกได้หลายรายการ *", REC_PATTERN_OPTIONS, key="rec_pattern")
+        rec_xray = False
+        if all(x in current_rooms_list() for x in XRAY_ROOMS):
+            rec_xray = st.checkbox("📷 จอง X-ray ทั้ง 3 ห้องพร้อมกัน (ใช้แทนการเลือกห้องด้านบน)", key="rec_xray")
+        rec_rooms = XRAY_ROOMS if rec_xray else [r_room]
+        rec_qty = 1 if rec_xray else r_quantity
 
         st.markdown("##### 🗓️ เลือกสัปดาห์จากปฏิทิน")
         st.caption("กดวันใดก็ได้ในสัปดาห์ เพื่อเลือกหรือยกเลิกทั้งสัปดาห์ (สัปดาห์ที่เลือกจะเป็นสีน้ำเงิน)")
@@ -1527,11 +1534,12 @@ elif st.session_state.page == "จองห้อง":
         if not rec_patterns or not rec_sel:
             st.info("เลือกวัน-ช่วงเวลา และอย่างน้อย 1 สัปดาห์จากปฏิทิน เพื่อดูรายการจอง")
         else:
-            rec_items = rec_plan(bookings, r_room, [date.fromisoformat(m) for m in rec_sel],
-                                 rec_patterns, r_quantity, today_rec)
+            rec_items = rec_plan(bookings, rec_rooms, [date.fromisoformat(m) for m in rec_sel],
+                                 rec_patterns, rec_qty, today_rec)
             n_free = sum(1 for x in rec_items if x["status"] == "ว่าง")
             st.markdown("##### 📋 รายการที่จะจอง")
             st.dataframe([{"วันที่": f"{WEEKDAY_TH[x['date'].weekday()]} {x['date'].strftime('%d/%m/%Y')}",
+                           "ห้อง": ("X-ray 3 ห้อง" if rec_xray else r_room),
                            "ช่วงเวลา": x["slot"], "สถานะ": x["status"]} for x in rec_items],
                          hide_index=True)
             st.caption(f"จะจองได้ {n_free} จาก {len(rec_items)} ครั้ง (ครั้งที่ไม่ว่างหรือผ่านแล้วจะถูกข้าม)")
@@ -1546,18 +1554,20 @@ elif st.session_state.page == "จองห้อง":
                     for x in rec_items:
                         if x["status"] != "ว่าง":
                             continue
-                        bid = str(uuid.uuid4())[:8].upper()
                         ds = x["date"].isoformat()
-                        save_one_booking({
-                            "id": bid, "name": r_name.strip(), "phone_id": r_phone.strip(),
-                            "user_status": r_status, "purpose": r_purpose, "item": r_room,
-                            "item_type": "ห้องปฏิบัติการ", "quantity": r_quantity,
-                            "date": ds, "start_date": ds, "end_date": ds, "slot": x["slot"],
-                            "borrow_time": now_s, "return_time": None, "status": "ยืมอยู่",
-                            "borrow_image": "", "return_image": None, "notes": "จองประจำ",
-                        })
-                        done.append({"วันที่": f"{WEEKDAY_TH[x['date'].weekday()]} {x['date'].strftime('%d/%m/%Y')}",
-                                     "ช่วงเวลา": x["slot"], "รหัสการจอง": bid})
+                        for room_name in x["rooms"]:
+                            bid = str(uuid.uuid4())[:8].upper()
+                            save_one_booking({
+                                "id": bid, "name": r_name.strip(), "phone_id": r_phone.strip(),
+                                "user_status": r_status, "purpose": r_purpose, "item": room_name,
+                                "item_type": "ห้องปฏิบัติการ", "quantity": rec_qty,
+                                "date": ds, "start_date": ds, "end_date": ds, "slot": x["slot"],
+                                "borrow_time": now_s, "return_time": None, "status": "ยืมอยู่",
+                                "borrow_image": "", "return_image": None, "notes": "จองประจำ",
+                            })
+                            done.append({"วันที่": f"{WEEKDAY_TH[x['date'].weekday()]} {x['date'].strftime('%d/%m/%Y')}",
+                                         "ห้อง": room_name.split(" : ")[-1],
+                                         "ช่วงเวลา": x["slot"], "รหัสการจอง": bid})
                     st.session_state.bookings = load_bookings()
                     st.session_state.rec_weeks = []
                     st.session_state["rec_result"] = done
