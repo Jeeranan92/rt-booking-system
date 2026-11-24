@@ -416,11 +416,118 @@ def equipment_item_name(sel, other_text):
     return f"{OTHER_EQUIP}: {other_text.strip()}" if sel == OTHER_EQUIP else sel
 
 def is_equipment_item(item):
-    return item in EQUIPMENT_LIST or is_other_item(item)
+    return item in all_equipment() or is_other_item(item)
+
+EXTRA_EQUIP_SHEET = "extra_equipment"
+EXTRA_EQUIP_FILE   = "extra_equipment.json"
+
+def all_equipment():
+    """รายการอุปกรณ์ทั้งหมด = รายการเดิม + อุปกรณ์ที่เพิ่มเอง + อื่นๆ (ท้ายสุด)"""
+    base   = [x for x in EQUIPMENT_LIST if x != OTHER_EQUIP]
+    extras = [x for x in st.session_state.get("extra_equip", []) if x not in base]
+    return base + extras + [OTHER_EQUIP]
+
+def get_extra_equip_sheet():
+    if not GSHEETS_AVAILABLE:
+        return None
+    try:
+        scopes = ["https://www.googleapis.com/auth/spreadsheets",
+                  "https://www.googleapis.com/auth/drive"]
+        creds_dict = dict(st.secrets["gcp"])
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        sh = gspread.authorize(creds).open_by_key(SHEET_ID)
+        try:
+            ws = sh.worksheet(EXTRA_EQUIP_SHEET)
+        except gspread.exceptions.WorksheetNotFound:
+            ws = sh.add_worksheet(title=EXTRA_EQUIP_SHEET, rows=500, cols=2)
+            ws.insert_row(["name", "added_at"], 1)
+        return ws
+    except Exception as e:
+        st.warning(f"Google Sheets (extra equipment): {e}")
+        return None
+
+def load_extra_equipment():
+    ws = get_extra_equip_sheet()
+    if ws is not None:
+        try:
+            return [str(r.get("name", "")).strip() for r in ws.get_all_records()
+                    if str(r.get("name", "")).strip()]
+        except Exception as e:
+            st.warning(f"โหลดรายการอุปกรณ์เพิ่มเติมจาก Sheets ไม่ได้: {e}")
+    if os.path.exists(EXTRA_EQUIP_FILE):
+        with open(EXTRA_EQUIP_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def add_extra_equipment(name):
+    ws = get_extra_equip_sheet()
+    if ws is not None:
+        try:
+            ws.append_row([name, datetime.now().strftime("%Y-%m-%d %H:%M:%S")], value_input_option="RAW")
+            return True
+        except Exception as e:
+            st.error(f"บันทึกลง Sheets ไม่สำเร็จ: {e}")
+            return False
+    data = []
+    if os.path.exists(EXTRA_EQUIP_FILE):
+        with open(EXTRA_EQUIP_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    data.append(name)
+    with open(EXTRA_EQUIP_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    return True
+
+@st.dialog("➕ เพิ่มอุปกรณ์ใหม่")
+def show_add_equipment_dialog():
+    st.caption("ใช้เมื่ออุปกรณ์ที่ต้องการยืมยังไม่อยู่ในรายการ (ต้องใช้รหัสแอดมิน)")
+    add_name = st.text_input("ชื่ออุปกรณ์ *", max_chars=100, key="add_eq_name",
+                             placeholder="เช่น ชุดหัววัดใหม่ รุ่น ...")
+    add_pin = st.text_input("รหัสแอดมิน *", type="password", key="add_eq_pin")
+    if st.button("✅ บันทึกอุปกรณ์", type="primary", use_container_width=True, key="add_eq_save"):
+        nm = add_name.strip()
+        if add_pin != ADMIN_PIN:
+            st.error("รหัสแอดมินไม่ถูกต้อง ยังไม่ได้บันทึก")
+        elif not nm:
+            st.error("กรุณากรอกชื่ออุปกรณ์")
+        elif nm in all_equipment():
+            st.error("มีอุปกรณ์นี้ในรายการแล้ว")
+        elif add_extra_equipment(nm):
+            extras = load_extra_equipment()
+            if nm not in extras:
+                extras.append(nm)
+            st.session_state.extra_equip = extras
+            st.session_state["pending_sel_eq"] = nm
+            st.session_state["equip_added_flash"] = f"✅ เพิ่มอุปกรณ์ “{nm}” ในรายการแล้ว"
+            st.session_state.pop("show_add_eq", None)
+            st.rerun()
+    if st.button("ปิด", key="add_eq_close", use_container_width=True):
+        st.session_state.pop("show_add_eq", None)
+        st.rerun()
+
+AUTO_CANCEL_DAYS = 7
+
+def auto_cancel_expired_rooms(bookings):
+    """ยกเลิกการจองห้องที่ยังสถานะ 'ยืมอยู่' เมื่อถึงวันที่ สิ้นสุดการจอง + 7 วัน (คืนจำนวนที่ยกเลิก)"""
+    today = oral_today()
+    n = 0
+    for b in list(bookings):
+        if b.get("item_type") != "ห้องปฏิบัติการ" or b.get("status") != "ยืมอยู่":
+            continue
+        end_raw = b.get("end_date") or b.get("date")
+        if not end_raw:
+            continue
+        end = to_date(str(end_raw))
+        if today < end + timedelta(days=AUTO_CANCEL_DAYS):
+            continue
+        update_booking_status(b["id"], "ยกเลิกแล้ว", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "",
+                              f"ยกเลิกอัตโนมัติ (ครบ {AUTO_CANCEL_DAYS} วันหลังวันจอง)")
+        n += 1
+    return n
 
 def current_equipment_list():
     """คืนรายการอุปกรณ์สำหรับการยืม-คืน (ใช้กับภาควิชารังสีเทคนิคเท่านั้น)"""
-    return EQUIPMENT_LIST
+    return all_equipment()
 
 def current_rooms_list():
     """คืนรายการห้อง/เครื่องมือสำหรับการจองห้องตามวิทยาเขตที่เลือกอยู่"""
@@ -941,6 +1048,17 @@ for k, v in defaults.items():
 
 st.session_state.bookings = load_bookings()
 bookings = st.session_state.bookings
+if "extra_equip" not in st.session_state:
+    st.session_state.extra_equip = load_extra_equipment()
+
+_ac_key = "auto_cancel_done_" + oral_today().isoformat()
+if _ac_key not in st.session_state:
+    st.session_state[_ac_key] = True
+    _n_auto = auto_cancel_expired_rooms(bookings)
+    if _n_auto:
+        st.session_state.bookings = load_bookings()
+        bookings = st.session_state.bookings
+        st.toast(f"ยกเลิกการจองห้องอัตโนมัติ {_n_auto} รายการ (ครบ {AUTO_CANCEL_DAYS} วันหลังวันจอง)")
 
 # แสดง popup ยืนยันการจอง หากมีการจอง/ยืมสำเร็จล่าสุด
 if st.session_state.get("confirm_booking"):
@@ -1167,7 +1285,15 @@ elif st.session_state.page == "ยืมอุปกรณ์":
 
     st.divider()
     st.markdown("##### 📦 เลือกอุปกรณ์")
+    if st.session_state.get("equip_added_flash"):
+        st.success(st.session_state.pop("equip_added_flash"))
+    if st.session_state.get("pending_sel_eq"):
+        st.session_state["sel_eq"] = st.session_state.pop("pending_sel_eq")
     sel_eq = st.selectbox("เลือกอุปกรณ์ *", current_equipment_list(), key="sel_eq")
+    if st.button("➕ เพิ่มอุปกรณ์ใหม่ (ถ้าไม่มีในรายการ)", key="open_add_eq"):
+        st.session_state["show_add_eq"] = True
+    if st.session_state.get("show_add_eq"):
+        show_add_equipment_dialog()
     other_text = ""
     if sel_eq == OTHER_EQUIP:
         other_text = st.text_input("✏️ ระบุชื่ออุปกรณ์ที่ยืม (อื่นๆ) *", key="eq_other_name",
@@ -1986,7 +2112,7 @@ elif st.session_state.page == "ปฏิทิน":
                 st.session_state.cal_month += 1
             st.rerun()
 
-    all_items = ["ทั้งหมด"] + EQUIPMENT_LIST + ALL_ROOMS
+    all_items = ["ทั้งหมด"] + all_equipment() + ALL_ROOMS
     fil_item = st.selectbox("กรองตามอุปกรณ์/ห้อง", all_items, key="cal_filter")
     yr = st.session_state.cal_year
     mo = st.session_state.cal_month
@@ -2061,7 +2187,7 @@ elif st.session_state.page == "ปฏิทิน":
     st.divider()
     st.markdown("#### ⏰ ตารางความว่างรายชั่วโมง")
     h1, h2 = st.columns([2, 1])
-    with h1: avail_item = st.selectbox("เลือกอุปกรณ์/ห้อง", EQUIPMENT_LIST + ALL_ROOMS, key="avail_item")
+    with h1: avail_item = st.selectbox("เลือกอุปกรณ์/ห้อง", all_equipment() + ALL_ROOMS, key="avail_item")
     with h2: avail_date = st.date_input("วันที่", value=today_obj, key="avail_date")
     avail_ds = avail_date.strftime("%Y-%m-%d")
     cols = st.columns(len(TIME_SLOTS))
