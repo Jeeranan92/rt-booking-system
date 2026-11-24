@@ -188,6 +188,7 @@ html, body, [class*="css"] { font-family: 'Sarabun', sans-serif; }
 # ─── Constants ────────────────────────────────────────────────────────────────
 DATA_FILE  = "bookings.json"
 IMAGES_DIR = "booking_images"
+ADMIN_PIN  = "2101"   # รหัสแอดมิน: ใช้ลบ/ยกเลิก/คืนด่วนทุกประเภทการจอง
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
 EQUIPMENT_LIST = [
@@ -310,6 +311,12 @@ def update_booking_status(bid, status, return_time, return_image, notes):
             bk["return_image"] = return_image
             bk["notes"]        = notes
     save_bookings(all_bks)
+
+def quick_set_status(bid, status, note, flash_key, flash_msg):
+    """บันทึกทันทีจากตารางด่วน (แอดมิน) โดยไม่ต้องแนบรูป"""
+    update_booking_status(bid, status, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "", note)
+    st.session_state.bookings = load_bookings()
+    st.session_state[flash_key] = flash_msg
 
 def parse_time(t):
     h, m = map(int, t.split(":"))
@@ -590,38 +597,6 @@ def show_day_bookings():
     if st.button("ปิด", use_container_width=True, key="close_day_dialog"):
         st.session_state.pop("cal_selected_date", None)
         st.rerun()
-@st.dialog("⚡ ยืนยันการคืน/ยกเลิกด่วน")
-def show_quick_action_dialog():
-    b = st.session_state.get("quick_action_booking")
-    if not b:
-        return
-
-    is_room = b.get("item_type") == "ห้องปฏิบัติการ"
-    action_label = "ยกเลิกห้อง" if is_room else "คืนอุปกรณ์"
-    new_status   = "ยกเลิกแล้ว" if is_room else "คืนแล้ว"
-    icon = "🏫" if is_room else "📋"
-
-    st.markdown(f"**{icon} {'ห้อง' if is_room else 'อุปกรณ์'}:** {b.get('item','-')}")
-    st.markdown(f"**👤 ผู้จอง:** {b.get('name','-')}")
-    st.markdown(f"**⏰ ช่วงเวลา:** {b.get('slot','-')}")
-    st.caption(f"รหัสการจอง: `{b.get('id','-')}`")
-
-    notes = st.text_input("หมายเหตุ (ถ้ามี)", key="quick_notes_input")
-
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button(f"✅ ยืนยัน{action_label}", type="primary",
-                     use_container_width=True, key="quick_confirm_btn"):
-            _ret_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            update_booking_status(b["id"], new_status, _ret_time, "", notes)
-            st.session_state.bookings = load_bookings()
-            st.session_state.pop("quick_action_booking", None)
-            st.success(f"{action_label} [{b['id']}] เรียบร้อย!")
-            st.rerun()
-    with c2:
-        if st.button("ปิด", use_container_width=True, key="quick_cancel_btn"):
-            st.session_state.pop("quick_action_booking", None)
-            st.rerun()
 # ─── จองอาจารย์สอบ Oral ───────────────────────────────────────────────────────
 ORAL_ADVISORS   = ["ผศ.ดร.ชญานิษฐ์", "รศ.ดร.ศิริประภา", "อ.ดร.วรวัฒน์"]
 ORAL_DAY_START  = "08:40"
@@ -635,7 +610,6 @@ ORAL_BOOK       = "จอง"
 ORAL_BLOCK      = "ไม่ว่าง"
 ORAL_ACTIVE     = "ใช้งาน"
 ORAL_CANCELLED  = "ยกเลิก"
-ORAL_ADMIN_PIN  = "2101"   # รหัสแอดมินสำหรับลบการจองคิว
 
 def _build_oral_slots():
     out, t, end = [], parse_time(ORAL_DAY_START), parse_time(ORAL_DAY_END)
@@ -922,8 +896,6 @@ if st.session_state.get("confirm_booking"):
     show_booking_confirmation()
 if st.session_state.get("cal_selected_date"):
     show_day_bookings()
-if st.session_state.get("quick_action_booking"):
-    show_quick_action_dialog()
 if st.session_state.get("oe_selected_date") and st.session_state.page == "จองอาจารย์":
     show_oral_day_dialog()
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
@@ -1257,24 +1229,28 @@ elif st.session_state.page == "คืนอุปกรณ์":
                     search.lower() in str(b["name"]).lower() or search.upper() in str(b["id"]).upper()]
         st.markdown(f"**พบ {len(filtered)} รายการที่กำลังยืมอยู่**")
 
-        st.markdown("##### ⚡ ตารางด่วน — คลิก 'คืน' เพื่อบันทึกทันที (ไม่ต้องแนบรูป)")
-        hc = st.columns([1.1, 1.4, 2.3, 1.3, 1.1, 0.9])
-        for h, txt in zip(hc, ["รหัส", "ผู้ยืม", "อุปกรณ์", "วันที่", "เวลา", ""]):
-            h.markdown(f"**{txt}**")
-        
-        for b in filtered:
-            start, end = get_date_range(b)
-            date_show = start if start == end else f"{start} → {end}"
-            r1, r2, r3, r4, r5, r6 = st.columns([1.1, 1.4, 2.3, 1.3, 1.1, 0.9])
-            r1.code(b["id"])
-            r2.write(b["name"])
-            r3.write(b["item"])
-            r4.write(date_show)
-            r5.write(b.get("slot", "-"))
-            if r6.button("คืน", key=f"quick_ret_{b['id']}", use_container_width=True, type="primary"):
-                st.session_state.quick_action_booking = b
-                st.rerun()
-        
+        # ── ตารางด่วน (เฉพาะแอดมิน): กดคืนแล้วบันทึกทันที ไม่ต้องแนบรูป ──
+        with st.expander("⚡ ตารางด่วน (แอดมิน) — กดคืนเพื่อบันทึกทันที"):
+            equip_pin = st.text_input("🔐 รหัสแอดมิน", type="password", key="equip_quick_pin")
+            equip_unlocked = equip_pin == ADMIN_PIN
+            flash = st.session_state.pop("equip_quick_flash", None)
+            if flash:
+                st.success(flash)
+            if not equip_unlocked:
+                st.caption("กรอกรหัสแอดมินก่อน ปุ่มคืนจึงจะกดได้")
+            for i, b in enumerate(filtered):
+                start, end = get_date_range(b)
+                date_show = start if start == end else f"{start} → {end}"
+                c1, c2, c3, c4, c5 = st.columns([1.2, 1.5, 2.2, 1.9, 0.8])
+                c1.caption(f"`{b['id']}`")
+                c2.caption(b["name"])
+                c3.caption(b["item"])
+                c4.caption(f"{date_show} • {b.get('slot', '-')}")
+                c5.button("คืน", key=f"quick_ret_{i}_{b['id']}", disabled=not equip_unlocked,
+                          use_container_width=True, on_click=quick_set_status,
+                          args=(b["id"], "คืนแล้ว", "คืนด่วนโดยแอดมิน", "equip_quick_flash",
+                                f"✅ คืน {b['item']} ของ {b['name']} แล้ว"))
+
         st.divider()
         st.markdown("##### 📋 รายละเอียด (แนบรูป/หมายเหตุ)")
 
@@ -1537,23 +1513,29 @@ elif st.session_state.page == "ยกเลิกห้อง":
 
         st.markdown(f"**พบ {len(rf)} ห้องที่จองอยู่**")
 
-        st.markdown("##### ⚡ ตารางด่วน — คลิก 'ยกเลิก' เพื่อบันทึกทันที (ไม่ต้องแนบรูป)")
-        hc2 = st.columns([1.1, 1.4, 2.3, 1.3, 1.1, 0.9])
-        for h, txt in zip(hc2, ["รหัส", "ผู้จอง", "ห้อง", "วันที่", "เวลา", ""]):
-            h.markdown(f"**{txt}**")
-
-        for i, b in enumerate(rf):
-            start, end = get_date_range(b)
-            date_show = start if start == end else f"{start} → {end}"
-            r1, r2, r3, r4, r5, r6 = st.columns([1.1, 1.4, 2.3, 1.3, 1.1, 0.9])
-            r1.code(b["id"])
-            r2.write(b["name"])
-            r3.write(b["item"])
-            r4.write(date_show)
-            r5.write(b.get("slot", "-"))
-            if r6.button("ยกเลิก", key=f"quick_cancel_room_{i}_{b['id']}", use_container_width=True, type="primary"):
-                st.session_state.quick_action_booking = b
-                st.rerun()
+        # ── ตารางด่วน (เฉพาะแอดมิน): กดยกเลิกแล้วบันทึกทันที ไม่ต้องแนบรูป ──
+        with st.expander("⚡ ตารางด่วน (แอดมิน) — กดยกเลิกเพื่อบันทึกทันที"):
+            room_pin = st.text_input("🔐 รหัสแอดมิน", type="password", key="room_quick_pin")
+            room_unlocked = room_pin == ADMIN_PIN
+            flash = st.session_state.pop("room_quick_flash", None)
+            if flash:
+                st.success(flash)
+            if not room_unlocked:
+                st.caption("กรอกรหัสแอดมินก่อน ปุ่มยกเลิกจึงจะกดได้")
+            if not rf:
+                st.caption("ไม่พบรายการตามคำค้นหา")
+            for i, b in enumerate(rf):
+                start, end = get_date_range(b)
+                date_show = start if start == end else f"{start} → {end}"
+                c1, c2, c3, c4, c5 = st.columns([1.2, 1.5, 2.2, 1.9, 0.8])
+                c1.caption(f"`{b['id']}`")
+                c2.caption(b["name"])
+                c3.caption(b["item"])
+                c4.caption(f"{date_show} • {b.get('slot', '-')}")
+                c5.button("ยกเลิก", key=f"quick_cancel_room_{i}_{b['id']}", disabled=not room_unlocked,
+                          use_container_width=True, on_click=quick_set_status,
+                          args=(b["id"], "ยกเลิกแล้ว", "ยกเลิกด่วนโดยแอดมิน", "room_quick_flash",
+                                f"✅ ยกเลิกห้อง {b['item']} ของ {b['name']} แล้ว"))
 
         st.divider()
         st.markdown("##### 📋 รายละเอียด (แนบรูป/หมายเหตุ)")
@@ -1761,7 +1743,7 @@ elif st.session_state.page == "จองอาจารย์":
             if st.button("🗑️ ยืนยันลบการจองนี้", type="primary", key="oe_del_go"):
                 if not admin_pin:
                     st.error("กรุณากรอกรหัสแอดมินก่อนยืนยันลบ")
-                elif admin_pin != ORAL_ADMIN_PIN:
+                elif admin_pin != ADMIN_PIN:
                     st.error("รหัสแอดมินไม่ถูกต้อง ยังไม่ได้ลบ")
                 elif cancel_oral_rows([pick_map[pick]]):
                     st.session_state.oe_flash = (
